@@ -206,33 +206,40 @@ EndFunc
 
 ;~ Writes a binary string to a specified memory address in the process.
 Func WriteBinary($binaryString, $address)
+	PushContext('WriteBinary')
 	Local $data = SafeDllStructCreate('byte[' & 0.5 * StringLen($binaryString) & ']')
 	For $i = 1 To DllStructGetSize($data)
 		DllStructSetData($data, 1, Dec(StringMid($binaryString, 2 * $i - 1, 2)), $i)
 	Next
 	SafeDllCall13($kernelHandle, 'int', 'WriteProcessMemory', 'int', GetProcessHandle(), 'ptr', $address, 'ptr', DllStructGetPtr($data), 'int', DllStructGetSize($data), 'int', 0)
+	PopContext('WriteBinary')
 EndFunc
 
 
 ;~ Writes the specified data to a memory address of a given type (default is 'dword').
 Func MemoryWrite($address, $data, $type = 'dword')
+	PushContext('MemoryWrite')
 	Local $buffer = SafeDllStructCreate($type)
 	DllStructSetData($buffer, 1, $data)
 	SafeDllCall13($kernelHandle, 'int', 'WriteProcessMemory', 'int', GetProcessHandle(), 'int', $address, 'ptr', DllStructGetPtr($buffer), 'int', DllStructGetSize($buffer), 'int', 0)
+	PopContext()
 EndFunc
 
 
 ;~ Reads data from a memory address, returning it as the specified type (defaults to dword).
 Func MemoryRead($address, $type = 'dword', $handleOverride = -1)
+	PushContext('MemoryRead')
 	Local $buffer = SafeDllStructCreate($type)
 	Local $processHandle = $handleOverride = -1 ? GetProcessHandle() : $handleOverride
 	SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', $processHandle, 'int', $address, 'ptr', DllStructGetPtr($buffer), 'int', DllStructGetSize($buffer), 'int', 0)
+	PopContext()
 	Return DllStructGetData($buffer, 1)
 EndFunc
 
 
 ;~ Reads data from a memory address, following pointer chains based on the provided offsets.
 Func MemoryReadPtr($address, $offset, $type = 'dword')
+	PushContext('MemoryReadPtr')
 	Local $ptrCount = UBound($offset) - 2
 	Local $buffer = SafeDllStructCreate('dword')
 	Local $processHandle = GetProcessHandle()
@@ -242,6 +249,7 @@ Func MemoryReadPtr($address, $offset, $type = 'dword')
 		$address = DllStructGetData($buffer, 1)
 		If $address == 0 Then
 			Local $data[2] = [0, 0]
+			PopContext()
 			Return $data
 		EndIf
 	Next
@@ -249,6 +257,7 @@ Func MemoryReadPtr($address, $offset, $type = 'dword')
 	$buffer = SafeDllStructCreate($type)
 	SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', $processHandle, 'int', $address, 'ptr', DllStructGetPtr($buffer), 'int', DllStructGetSize($buffer), 'int', 0)
 	Local $data[2] = [$address, DllStructGetData($buffer, 1)]
+	PopContext()
 	Return $data
 EndFunc
 
@@ -393,6 +402,7 @@ EndFunc
 
 ;~ Injects GWA2 into the game client.
 Func InitializeGameClientData($changeTitle = True, $initUseStringLog = False, $initUseEventSystem = True)
+	PushContext('InitializeGameClientData')
 	$useStringLogging = $initUseStringLog
 	$useEventSystem = $initUseEventSystem
 
@@ -593,6 +603,7 @@ Func InitializeGameClientData($changeTitle = True, $initUseStringLog = False, $i
 	$agentCopyBase = GetValue('AgentCopyBase')
 	$lastDialogId = GetValue('LastDialogID')
 
+	PushContext('InitializeGameClientData-setdataregion')
 	; EventSystem
 	DllStructSetData($inviteGuildStruct, 1, GetValue('CommandPacketSend'))
 	If @error Then logCriticalErrors('Failed to set invite guild command')
@@ -640,10 +651,16 @@ Func InitializeGameClientData($changeTitle = True, $initUseStringLog = False, $i
 	If @error Then logCriticalErrors('Failed to set CommandMakeAgentArray command')
 	DllStructSetData($changeStatusStruct, 1, GetValue('CommandChangeStatus'))
 	If @error Then logCriticalErrors('Failed to set CommandChangeStatus command')
+	PopContext('InitializeGameClientData-setdataregion')
+
+	PushContext('InitializeGameClientData-end')
 	If $changeTitle Then WinSetTitle(GetWindowHandle(), '', 'Guild Wars - ' & GetCharacterName())
 	If @error Then logCriticalErrors('Failed to change window title')
 	SetMaxMemory()
-	Return GetWindowHandle()
+	Local $windowHandle = GetWindowHandle()
+	PopContext('InitializeGameClientData-end')
+	PopContext('InitializeGameClientData')
+	Return $windowHandle
 EndFunc
 
 
@@ -665,6 +682,7 @@ EndFunc
 
 ;~ Scan patterns for Guild Wars game client.
 Func ScanGWBasePatterns()
+	PushContext('ScanGWBasePatterns')
 	Local $gwBaseAddress = ScanForProcess()
 	$asmInjectionSize = 0
 	$asmCodeOffset = 0
@@ -904,19 +922,23 @@ Func ScanGWBasePatterns()
 			$result = SafeDllCall7($kernelHandle, 'int', 'WaitForSingleObject', 'int', $thread, 'int', 50)
 		Until $result[0] <> 258
 	EndIf
+	PopContext('ScanGWBasePatterns')
 EndFunc
 
 
 ;~ Find process by scanning memory
 ;~ This process is located at 0x00401000, i.e.: shifted of 0x1000 from real start of the process. Why do we start here ? PE Headers ?
 Func ScanForProcess()
+	PushContext('ScanForProcess')
 	Local $scannedMemory = ScanMemoryForPattern(GetProcessHandle(), BinaryToString('0x558BEC83EC105356578B7D0833F63BFE'))
+	PopContext('ScanForProcess')
 	Return $scannedMemory[0]
 EndFunc
 
 
 ;~ Find character names by scanning memory
 Func ScanForCharname($processHandle)
+	PushContext('ScanForCharname')
 	Local $scannedMemory = ScanMemoryForPattern($processHandle, BinaryToString('0x6A14FF751868'))
 	Local $baseAddress = $scannedMemory[1]
 	Local $matchOffset = $scannedMemory[2]
@@ -925,12 +947,14 @@ Func ScanForCharname($processHandle)
 	SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', $processHandle, 'int', $tmpAddress + 6, 'ptr', DllStructGetPtr($buffer), 'int', DllStructGetSize($buffer), 'int', 0)
 	Local $characterName = DllStructGetData($buffer, 1)
 	Local $result = MemoryRead($characterName, 'wchar[30]', $processHandle)
+	PopContext()
 	Return $result
 EndFunc
 
 
 ;~ Scan memory for a pattern - used to find process and to find character names
 Func ScanMemoryForPattern($processHandle, $patternBinary)
+	PushContext('ScanMemoryForPattern')
 	Local $currentSearchAddress = 0x00000000
 	Local $mbiBuffer = SafeDllStructCreate('dword;dword;dword;dword;dword;dword;dword')
 
@@ -950,11 +974,13 @@ Func ScanMemoryForPattern($processHandle, $patternBinary)
 			Local $matchOffset = StringInStr($tmpMemoryData, $patternBinary, 2)
 			If $matchOffset > 0 Then
 				Local $match[3] = [$memoryBaseAddress, $currentSearchAddress, $matchOffset]
+				PopContext()
 				Return $match
 			EndIf
 		EndIf
 		$currentSearchAddress += $regionSize
 	WEnd
+	PopContext()
 	Return Null
 EndFunc
 
@@ -973,7 +999,10 @@ EndFunc
 
 ;~ Retrieves the scanned memory address for a specific label and offset (internal use)
 Func GetScannedAddress($label, $offset)
-	Return MemoryRead(GetLabelInfo($label) + 8) - MemoryRead(GetLabelInfo($label) + 4) + $offset
+	PushContext('GetScannedAddress')
+	Local $result = MemoryRead(GetLabelInfo($label) + 8) - MemoryRead(GetLabelInfo($label) + 4) + $offset
+	PopContext('GetScannedAddress')
+	Return $result
 EndFunc
 #EndRegion Initialisation
 
@@ -2764,6 +2793,7 @@ EndFunc
 
 ;~ Returns item by slot.
 Func GetItemBySlot($bag, $slot)
+	PushContext('GetItemBySlot')
 	If Not IsDllStruct($bag) Then $bag = GetBag($bag)
 
 	Local $itemPtr = DllStructGetData($bag, 'ItemArray')
@@ -2773,11 +2803,13 @@ Func GetItemBySlot($bag, $slot)
 	Local $memoryInfo = DllStructCreate($memoryInfoStructTemplate)
 	SafeDllCall11($kernelHandle, 'int', 'VirtualQueryEx', 'int', GetProcessHandle(), 'int', DllStructGetData($buffer, 1), 'ptr', DllStructGetPtr($memoryInfo), 'int', DllStructGetSize($memoryInfo))
 	If DllStructGetData($memoryInfo, 'State') <> 0x1000 Then
+		PopContext()
 		Return 0
 	EndIf
 
 	Local $itemStruct = SafeDllStructCreate($itemStructTemplate)
 	SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', GetProcessHandle(), 'int', DllStructGetData($buffer, 1), 'ptr', DllStructGetPtr($itemStruct), 'int', DllStructGetSize($itemStruct), 'int', 0)
+	PopContext()
 	Return $itemStruct
 EndFunc
 
@@ -3269,6 +3301,7 @@ EndFunc
 
 ;~ Quickly creates an array of agents of a given type
 Func GetAgentArray($type = 0)
+	PushContext('GetAgentArray')
 	Local $struct
 	Local $count
 	Local $buffer = ''
@@ -3295,6 +3328,7 @@ Func GetAgentArray($type = 0)
 			DllStructSetData($struct, 1, DllStructGetData($buffer, $i))
 		Next
 	EndIf
+	PopContext()
 	Return $returnArray
 EndFunc
 
@@ -3476,9 +3510,11 @@ EndFunc
 
 ;~ Returns a player's name.
 Func GetPlayerName($agent)
+	PushContext('GetPlayerName')
 	Local $loginNumber = DllStructGetData($agent, 'LoginNumber')
 	Local $offset[6] = [0, 0x18, 0x2C, 0x80C, 76 * $loginNumber + 0x28, 0]
 	Local $result = MemoryReadPtr($baseAddressPtr, $offset, 'wchar[30]')
+	PopContext('GetPlayerName')
 	Return $result[1]
 EndFunc
 
@@ -3799,7 +3835,10 @@ EndFunc
 
 ;~ Returns your agent ID.
 Func GetMyID()
-	Return MemoryRead($myID)
+	PushContext('GetMyID')
+	Local $result = MemoryRead($myID)
+	PopContext()
+	Return $result
 EndFunc
 
 
@@ -4389,6 +4428,7 @@ EndFunc
 #Region Modification
 ;~ Internal use only.
 Func ModifyMemory()
+	PushContext('ModifyMemory')
 	$asmInjectionSize = 0
 	$asmCodeOffset = 0
 	$asmInjectionString = ''
@@ -4418,12 +4458,15 @@ Func ModifyMemory()
 	WriteDetour('LoadFinishedStart', 'LoadFinishedProc')
 	WriteDetour('RenderingMod', 'RenderingModProc')
 	WriteDetour('DialogLogStart', 'DialogLogProc')
+	PopContext('ModifyMemory')
 EndFunc
 
 
 ;~ Internal use only.
 Func WriteDetour($from, $to)
+	PushContext('WriteDetour')
 	WriteBinary('E9' & SwapEndian(Hex(GetLabelInfo($to) - GetLabelInfo($from) - 5)), GetLabelInfo($from))
+	PopContext('WriteDetour')
 EndFunc
 
 

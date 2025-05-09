@@ -97,7 +97,7 @@ Global $STATUS = 'STOPPED'
 ; -1 = did not start, 0 = ran fine, 1 = failed, 2 = pause
 Local $RUN_MODE = 'AUTOLOAD'
 Local $PROCESS_ID = ''
-Local $LOG_LEVEL = 1
+Local $LOG_LEVEL = 0
 Local $CHARACTER_NAME = ''
 Local $DISTRICT_NAME = 'Random'
 Local $BAG_NUMBER = 5
@@ -551,6 +551,7 @@ EndFunc
 
 ;~ Main loop to run farms
 Func RunFarmLoop($Farm)
+	PushContext('RunFarmLoop')
 	Local $result = 2
 	Local $timePerRun = UpdateStats(-1, null)
 	Local $timer = TimerInit()
@@ -610,6 +611,7 @@ Func RunFarmLoop($Farm)
 	AdlibUnRegister('UpdateProgressBar')
 	GUICtrlSetData($GUI_FarmProgress, 100)
 	UpdateStats($result, $timer)
+	PopContext('RunFarmLoop')
 	Return $result
 EndFunc
 #EndRegion Main loops
@@ -929,6 +931,7 @@ EndFunc
 #Region Statistics management
 ;~ Fill statistics
 Func UpdateStats($success, $timer)
+	PushContext('UpdateStats')
 	Local Static $runs = 0
 	Local Static $failures = 0
 	Local Static $time = 0
@@ -984,6 +987,7 @@ Func UpdateStats($success, $timer)
 	GUICtrlSetData($GUI_Label_LuxonTitle, 'Luxon: ' & GetLuxonTitle() - $LuxonTitlePoints)
 	GUICtrlSetData($GUI_Label_LightbringerTitle, 'Lightbringer: ' & GetLightbringerTitle() - $LightbringerTitlePoints)
 	GUICtrlSetData($GUI_Label_SunspearTitle, 'Sunspear: ' & GetSunspearTitle() - $SunspearTitlePoints)
+	PopContext('UpdateStats')
 	Return $timePerRun
 EndFunc
 

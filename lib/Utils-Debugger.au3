@@ -12,7 +12,7 @@
 ; - DllStructGetData
 ; - DllStructSetData
 
-Global Const $debugMode = False
+Global Const $debugMode = True
 Global Const $addContext = True
 Local $logHandle = -1
 Local $ContextStack[100]

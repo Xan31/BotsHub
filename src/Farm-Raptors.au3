@@ -94,6 +94,7 @@ EndFunc
 
 ;~ Setup the Raptor farm for faster farm
 Func SetupRaptorFarm()
+	PushContext('SetupRaptorFarm')
 	Info('Setting up farm')
 	SetDisplayedTitle($ID_Asura_Title)
 	SwitchMode($ID_HARD_MODE)
@@ -110,6 +111,7 @@ Func SetupRaptorFarm()
 	WaitMapLoading($ID_Rata_Sum, 10000, 2000)
 	$RAPTORS_FARM_SETUP = True
 	Info('Resign preparation complete')
+	PopContext('SetupRaptorFarm')
 EndFunc
 
 

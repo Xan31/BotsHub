@@ -664,6 +664,7 @@ EndFunc
 
 ;~ Counts gold items in inventory
 Func CountGoldItems()
+	PushContext('CountGoldItems')
 	Local $goldItemsCount = 0
 	Local $item
 	For $bagIndex = 1 To $BAG_NUMBER
@@ -674,6 +675,7 @@ Func CountGoldItems()
 			If ((IsWeapon($item) Or IsArmorSalvageItem($item)) And GetRarity($item) == $RARITY_Gold) Then $goldItemsCount += 1
 		Next
 	Next
+	PopContext()
 	Return $goldItemsCount
 EndFunc
 
@@ -1833,6 +1835,7 @@ EndFunc
 #Region Skill and Templates
 ;~ Loads skill template code.
 Func LoadSkillTemplate($buildTemplate, $heroIndex = 0)
+	PushContext('LoadSkillTemplate')
 	Local $heroID = GetHeroID($heroIndex)
 	Local $splitBuildTemplate = StringSplit($buildTemplate, '')
 
@@ -1907,11 +1910,13 @@ Func LoadSkillTemplate($buildTemplate, $heroIndex = 0)
 	LoadAttributes($attributes, $secondaryProfession, $heroIndex)
 
 	LoadSkillBar($skills[0], $skills[1], $skills[2], $skills[3], $skills[4], $skills[5], $skills[6], $skills[7], $heroIndex)
+	PopContext('LoadSkillTemplate')
 EndFunc
 
 
 ;~ Load attributes from a two dimensional array.
 Func LoadAttributes($attributesArray, $secondaryProfession, $heroIndex = 0)
+	PushContext('LoadAttributes')
 	Local $heroID = GetHeroID($heroIndex)
 	Local $primaryAttribute
 	Local $deadlock
@@ -1952,11 +1957,13 @@ Func LoadAttributes($attributesArray, $secondaryProfession, $heroIndex = 0)
 		IncreaseAttribute($primaryAttribute, $heroIndex)
 		Sleep(GetPing() + 100)
 	Next
+	PopContext('LoadAttributes')
 EndFunc
 
 
 ;~ Set all attributes of the character/hero to 0
 Func EmptyAttributes($secondaryProfession, $heroIndex = 0)
+	PushContext('EmptyAttributes')
 	For $attribute In $AttributesByProfessionMap[GetHeroProfession($heroIndex)]
 		For $i = 0 To 11
 			DecreaseAttribute($attribute, $heroIndex)
@@ -1970,6 +1977,7 @@ Func EmptyAttributes($secondaryProfession, $heroIndex = 0)
 			Sleep(GetPing() + 20)
 		Next
 	Next
+	PopContext('EmptyAttributes')
 EndFunc
 #EndRegion Skill and Templates
 

@@ -3122,7 +3122,9 @@ EndFunc
 #Region Agent
 ;~ Return agent of the player
 Func GetMyAgent()
-	Return GetAgentByID(GetMyID())
+	Local $myAgentID = GetMyID()
+	Local $myAgent = GetAgentByID($myAgentID)
+	Return $myAgent
 EndFunc
 
 
@@ -3146,7 +3148,8 @@ EndFunc
 
 ;~ Test if an agent exists.
 Func GetAgentExists($agent)
-	Return GetAgentPtr(DllStructGetData($agent, 'ID')) <> 0
+	Local $agentPtr = GetAgentPtr(DllStructGetData($agent, 'ID'))
+	Return $agentPtr <> 0
 EndFunc
 
 
@@ -6265,7 +6268,7 @@ Func WaitMapLoading($mapID = -1, $deadlockTime = 10000, $waitingTime = 5000)
 			PopContext('WaitMapLoading')
 			Return False
 		EndIf
-	Until GetAgentExists(GetMyAgent()) And $skillbarStruct[0] <> 0 And (GetMapID() = $mapID Or $mapID = -1)
+	Until GetMyID() <> 0 And $skillbarStruct[0] <> 0 And (GetMapID() = $mapID Or $mapID = -1)
 	RndSleep($waitingTime)
 	PopContext('WaitMapLoading')
 	Return True

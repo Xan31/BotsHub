@@ -3122,8 +3122,10 @@ EndFunc
 #Region Agent
 ;~ Return agent of the player
 Func GetMyAgent()
+	PushContext('GetMyAgent')
 	Local $myAgentID = GetMyID()
 	Local $myAgent = GetAgentByID($myAgentID)
+	PopContext()
 	Return $myAgent
 EndFunc
 
@@ -3148,7 +3150,9 @@ EndFunc
 
 ;~ Test if an agent exists.
 Func GetAgentExists($agent)
+	PushContext('GetAgentExists')
 	Local $agentPtr = GetAgentPtr(DllStructGetData($agent, 'ID'))
+	PopContext()
 	Return $agentPtr <> 0
 EndFunc
 

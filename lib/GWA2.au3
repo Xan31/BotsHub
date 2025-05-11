@@ -1074,6 +1074,7 @@ EndFunc
 
 ;~ Get itemID from an item structure or pointer
 Func GetItemID($item)
+	PushContext('GetItemID')
 	Local $result
 	If IsPtr($item) Then
 		$result = MemoryRead($item, 'long')
@@ -1082,6 +1083,7 @@ Func GetItemID($item)
 	Else
 		$result = $item
 	EndIf
+	PopContext('GetItemID')
 	Return $result
 EndFunc
 
@@ -2733,10 +2735,13 @@ EndFunc
 #Region Item
 ;~ Returns rarity (name color) of an item.
 Func GetRarity($item)
+	PushContext('GetRarity')
 	If Not IsDllStruct($item) Then $item = GetItemByItemID($item)
 	Local $ptr = DllStructGetData($item, 'NameString')
-	If $ptr == 0 Then Return
-	Return MemoryRead($ptr, 'ushort')
+	If $ptr == 0 And PopContext('GetRarity') Then Return
+	Local $rarity = MemoryRead($ptr, 'ushort')
+	PopContext('GetRarity')
+	Return $rarity
 EndFunc
 
 
@@ -2800,10 +2805,13 @@ EndFunc
 
 ;~ Returns modstruct of an item.
 Func GetModStruct($item)
+	PushContext('GetModStruct')
 	If Not IsDllStruct($item) Then $item = GetItemByItemID($item)
 	Local $modstruct = DllStructGetData($item, 'modstruct')
-	If $modstruct = 0 Then Return
-	Return MemoryRead($modstruct, 'Byte[' & DllStructGetData($item, 'modstructsize') * 4 & ']')
+	If $modstruct = 0 And PopContext('GetModStruct') Then Return
+	Local $result = MemoryRead($modstruct, 'Byte[' & DllStructGetData($item, 'modstructsize') * 4 & ']')
+	PopContext('GetModStruct')
+	Return $result
 EndFunc
 
 
@@ -2843,10 +2851,7 @@ Func GetItemBySlot($bag, $slot)
 
 	Local $memoryInfo = DllStructCreate($memoryInfoStructTemplate)
 	SafeDllCall11($kernelHandle, 'int', 'VirtualQueryEx', 'int', GetProcessHandle(), 'int', DllStructGetData($buffer, 1), 'ptr', DllStructGetPtr($memoryInfo), 'int', DllStructGetSize($memoryInfo))
-	If DllStructGetData($memoryInfo, 'State') <> 0x1000 Then
-		PopContext()
-		Return 0
-	EndIf
+	If DllStructGetData($memoryInfo, 'State') <> 0x1000 And PopContext() Then Return 0
 
 	Local $itemStruct = SafeDllStructCreate($itemStructTemplate)
 	SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', GetProcessHandle(), 'int', DllStructGetData($buffer, 1), 'ptr', DllStructGetPtr($itemStruct), 'int', DllStructGetSize($itemStruct), 'int', 0)
@@ -3057,10 +3062,7 @@ EndFunc
 ;~ Returns agent ID of a hero.
 Func GetHeroID($heroIndex)
 	PushContext('GetHeroID')
-	If $heroIndex == 0 Then
-		PopContext()
-		Return GetMyID()
-	EndIf
+	If $heroIndex == 0 And PopContext() Then Return GetMyID()
 	Local $offset[6] = [0, 0x18, 0x4C, 0x54, 0x24, 0x18 * ($heroIndex - 1)]
 	Local $agentID = MemoryReadPtr($baseAddressPtr, $offset)
 	PopContext()
@@ -3159,7 +3161,10 @@ EndFunc
 
 ;~ Returns the target of an agent.
 Func GetTarget($agent)
-	Return MemoryRead(GetValue('TargetLogBase') + 4 * DllStructGetData($agent, 'ID'))
+	PushContext('GetTarget')
+	Local $target = MemoryRead(GetValue('TargetLogBase') + 4 * DllStructGetData($agent, 'ID'))
+	PopContext('GetTarget')
+	Return $target
 EndFunc
 
 
@@ -3825,7 +3830,10 @@ EndFunc
 
 ;~ Returns the timestamp used for effects and skills (milliseconds).
 Func GetSkillTimer()
-	Return MemoryRead($skillTimer, 'long')
+	PushContext('GetSkillTimer')
+	Local $result = MemoryRead($skillTimer, 'long')
+	PopContext('GetSkillTimer')
+	Return $result
 EndFunc
 
 
@@ -3882,7 +3890,10 @@ EndFunc
 
 ;~ Returns number of agents currently loaded.
 Func GetMaxAgents()
-	Return MemoryRead($maxAgents)
+	PushContext('GetMaxAgents')
+	Local $result = MemoryRead($maxAgents)
+	PopContext('GetMaxAgents')
+	Return $result
 EndFunc
 
 
@@ -3909,7 +3920,9 @@ EndFunc
 
 ;~ Returns current ping.
 Func GetPing()
+	PushContext('GetPing')
 	Local $ping = MemoryRead($scanPingAddress)
+	PopContext('GetPing')
 	Return $ping < 10 ? 10 : $ping
 EndFunc
 
@@ -3926,7 +3939,10 @@ EndFunc
 
 ;~ Returns current map ID
 Func GetMapID()
-	Return MemoryRead($mapID)
+	PushContext('GetMapID')
+	Local $result = MemoryRead($mapID)
+	PopContext('GetMapID')
+	Return $result
 EndFunc
 
 
@@ -3973,7 +3989,10 @@ EndFunc
 
 ;~ Returns current load-state.
 Func GetMapLoading()
-	Return MemoryRead($mapLoading)
+	PushContext('GetMapLoading')
+	Local $result = MemoryRead($mapLoading)
+	PopContext('GetMapLoading')
+	Return $result
 EndFunc
 
 
@@ -4033,7 +4052,10 @@ EndFunc
 
 ;~ Returns if you're logged in.
 Func GetLoggedIn()
-	Return MemoryRead($isLoggedIn)
+	PushContext('GetLoggedIn')
+	Local $result = MemoryRead($isLoggedIn)
+	PopContext('GetLoggedIn')
+	Return $result
 EndFunc
 
 
@@ -6268,10 +6290,7 @@ Func WaitMapLoading($mapID = -1, $deadlockTime = 10000, $waitingTime = 5000)
 		Sleep(200)
 		$skillbarStruct = MemoryReadPtr($baseAddressPtr, $offset, 'ptr')
 		If $skillbarStruct[0] = 0 Then $deadlock = TimerInit()
-		If TimerDiff($deadlock) > $deadlockTime And $deadlockTime > 0 Then
-			PopContext('WaitMapLoading')
-			Return False
-		EndIf
+		If TimerDiff($deadlock) > $deadlockTime And $deadlockTime > 0 And PopContext('WaitMapLoading') Then Return False
 	Until GetMyID() <> 0 And $skillbarStruct[0] <> 0 And (GetMapID() = $mapID Or $mapID = -1)
 	RndSleep($waitingTime)
 	PopContext('WaitMapLoading')
@@ -6373,6 +6392,7 @@ EndFunc
 
 ;~ Returns amount of slots of bag.
 Func GetMaxSlots($bag)
+	PushContext('GetMaxSlots')
 	Local $slots
 	If IsPtr($bag) Then
 		$slots = MemoryRead($bag + 32, 'long')
@@ -6381,5 +6401,6 @@ Func GetMaxSlots($bag)
 	Else
 		$slots = MemoryRead(GetBagPtr($bag) + 32, 'long')
 	EndIf
+	PopContext('GetMaxSlots')
 	Return $slots
 EndFunc

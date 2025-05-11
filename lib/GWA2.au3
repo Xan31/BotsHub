@@ -269,10 +269,12 @@ Func MemoryReadPtr($address, $offset, $type = 'dword')
 		SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', $processHandle, 'int', $address, 'ptr', DllStructGetPtr($buffer), 'int', DllStructGetSize($buffer), 'int', 0)
 		$data[0] = $address
 		$data[1] = DllStructGetData($buffer, 1)
+		PopContext('MemoryReadPtr')
 		Return $data
 	Next
 	; This can be valid when trying to access an agent out of range for instance
 	DebuggerLog('Tried to access an invalid address')
+	PopContext('MemoryReadPtr')
 	Return $data
 EndFunc
 
@@ -2829,14 +2831,18 @@ EndFunc
 
 ;~ Tests if an item is assigned to you.
 Func GetAssignedToMe($agent)
+	PushContext('GetAssignedToMe')
 	Local $result = DllStructGetData($agent, 'Owner') == GetMyID()
+	PopContext('GetAssignedToMe')
 	Return $result
 EndFunc
 
 
 ;~ Tests if you can pick up an item.
 Func GetCanPickUp($agent)
+	PushContext('GetCanPickUp')
 	Local $result = GetAssignedToMe($agent) Or DllStructGetData($agent, 'Owner') = 0
+	PopContext('GetCanPickUp')
 	Return $result
 EndFunc
 
@@ -2884,6 +2890,7 @@ EndFunc
 
 ;~ Returns item by agent ID.
 Func GetItemByAgentID($agentID)
+	PushContext('GetItemByAgentID')
 	Local $offset[4] = [0, 0x18, 0x40, 0xC0]
 	Local $itemArraySize = MemoryReadPtr($baseAddressPtr, $offset)
 	Local $offset[5] = [0, 0x18, 0x40, 0xB8, 0]
@@ -2897,9 +2904,11 @@ Func GetItemByAgentID($agentID)
 		Local $itemStruct = SafeDllStructCreate($itemStructTemplate)
 		SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', $processHandle, 'int', $itemPtr[1], 'ptr', DllStructGetPtr($itemStruct), 'int', DllStructGetSize($itemStruct), 'int', 0)
 		If DllStructGetData($itemStruct, 'AgentID') = $agentID Then
+			PopContext('GetItemByAgentID')
 			Return $itemStruct
 		EndIf
 	Next
+	PopContext('GetItemByAgentID')
 EndFunc
 
 
@@ -3148,10 +3157,12 @@ EndFunc
 
 ;~ Returns an agent struct.
 Func GetAgentByID($agentID)
+	PushContext('GetAgentByID')
 	If $agentID = -2 Then $agentID = GetMyID()
 	Local $agentPtr = GetAgentPtr($agentID)
 	Local $agentStruct = SafeDllStructCreate($agentStructTemplate)
 	SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', GetProcessHandle(), 'int', $agentPtr, 'ptr', DllStructGetPtr($agentStruct), 'int', DllStructGetSize($agentStruct), 'int', 0)
+	PopContext('GetAgentByID')
 	Return $agentStruct
 EndFunc
 
@@ -3535,8 +3546,10 @@ EndFunc
 
 ;~ Tests if an agent is dead.
 Func GetIsDead($agent = -2)
+	PushContext('GetIsDead')
 	If $agent == -2 Then $agent = GetMyAgent()
 	Local $result = BitAND(DllStructGetData($agent, 'Effects'), 0x0010)
+	PopContext('GetIsDead')
 	Return $result > 0
 EndFunc
 
@@ -3964,8 +3977,10 @@ EndFunc
 
 ;~ Returns the instance type (city, explorable, mission, etc ...)
 Func GetInstanceType()
+	PushContext('GetInstanceType')
 	Local $offset[1] = [0x00]
 	Local $result = MemoryReadPtr($instanceInfoPtr, $offset, 'dword')
+	PopContext('GetInstanceType')
 	Return $result[1]
 EndFunc
 

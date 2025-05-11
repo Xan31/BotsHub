@@ -143,6 +143,7 @@ EndFunc
 ;~ Loot items around character
 Func PickUpItems($defendFunction = null, $ShouldPickItem = DefaultShouldPickItem, $range = $RANGE_COMPASS)
 	If (GUICtrlRead($GUI_Checkbox_LootNothing) == $GUI_CHECKED) Then Return
+	PushContext('PickUpItems')
 
 	Local $item
 	Local $agentID
@@ -164,7 +165,7 @@ Func PickUpItems($defendFunction = null, $ShouldPickItem = DefaultShouldPickItem
 			$deadlock = TimerInit()
 			While GetAgentExists($agentID) And TimerDiff($deadlock) < 10000
 				RndSleep(50)
-				If GetIsDead() Then Return
+				If GetIsDead() And PopContext('PickUpItems') Then Return
 			WEnd
 		EndIf
 	Next
@@ -172,6 +173,7 @@ Func PickUpItems($defendFunction = null, $ShouldPickItem = DefaultShouldPickItem
 	If $BAG_NUMBER == 5 And CountSlots(1, 3) == 0 Then
 		MoveItemsToEquipmentBag()
 	EndIf
+	PopContext('PickUpItems')
 EndFunc
 
 
@@ -1742,7 +1744,8 @@ EndFunc
 ;~ Clear a zone around the coordinates provided
 ;~ Credits to Shiva for auto-attack improvement
 Func MoveAggroAndKill($x, $y, $s = '', $range = 1450, $chestOpenRange = $RANGE_SPIRIT, $lootInFights = True)
-	If Not IsGroupAlive() Then Return True
+	PushContext('MoveAggroAndKill')
+	If Not IsGroupAlive() And PopContext('MoveAggroAndKill') Then Return True
 	If $s <> '' Then Info($s)
 	Local $blocked = 0
 	Local $me = GetMyAgent()
@@ -1772,12 +1775,14 @@ Func MoveAggroAndKill($x, $y, $s = '', $range = 1450, $chestOpenRange = $RANGE_S
 		RndSleep(500)
 		CheckForChests($chestOpenRange)
 	WEnd
+	PopContext('MoveAggroAndKill')
 	Return Not $groupIsAlive
 EndFunc
 
 
 ;~ Kill foes by casting skills from 1 to 8
 Func DefaultKillFoes($lootInFights = True)
+	PushContext('DefaultKillFoes')
 	Local $me = GetMyAgent()
 	Local $skillNumber = 1, $foesCount = 999, $target = GetNearestEnemyToAgent($me), $targetId = -1
 	GetAlmostInRangeOfAgent($target)
@@ -1813,11 +1818,13 @@ Func DefaultKillFoes($lootInFights = True)
 	WEnd
 	RndSleep(1000)
 	PickUpItems()
+	PopContext('DefaultKillFoes')
 EndFunc
 
 
 ;~ Returns True if the group is alive
 Func IsGroupAlive()
+	PushContext('IsGroupAlive')
 	Local $deadMembers = 0
 	For $i = 0 to GetHeroCount()
 		Local $heroID = GetHeroID($i)
@@ -1825,6 +1832,7 @@ Func IsGroupAlive()
 			$deadMembers += 1
 		EndIf
 	Next
+	PopContext('IsGroupAlive')
 	Return $deadMembers < 8
 EndFunc
 #EndRegion Map Clearing Utilities

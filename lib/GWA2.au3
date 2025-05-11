@@ -1583,10 +1583,12 @@ EndFunc
 
 ;~ Disable all skills on a hero's skill bar.
 Func DisableAllHeroSkills($heroIndex)
+	PushContext('DisableAllHeroSkills')
 	For $i = 1 to 8
 		DisableHeroSkillSlot($heroIndex, $i)
 		Sleep(GetPing() + 20)
 	Next
+	PopContext('DisableAllHeroSkills')
 EndFunc
 
 
@@ -1623,12 +1625,15 @@ EndFunc
 #Region Movement
 ;~ Move to a location. Returns True if successful
 Func Move($X, $Y, $random = 50)
+	PushContext('Move')
 	If GetAgentExists(GetMyAgent()) Then
 		DllStructSetData($moveStruct, 2, $X + Random(-$random, $random))
 		DllStructSetData($moveStruct, 3, $Y + Random(-$random, $random))
 		Enqueue($moveStructPtr, 16)
+		PopContext('Move')
 		Return True
 	Else
+		PopContext('Move')
 		Return False
 	EndIf
 EndFunc
@@ -1636,6 +1641,7 @@ EndFunc
 
 ;~ Move to a location and wait until you reach it.
 Func MoveTo($X, $Y, $random = 50, $doWhileRunning = null)
+	PushContext('MoveTo')
 	Local $blockedCount = 0
 	Local $me
 	Local $mapLoading = GetInstanceType(), $mapLoadingOld
@@ -1659,6 +1665,7 @@ Func MoveTo($X, $Y, $random = 50, $doWhileRunning = null)
 			Move($destinationX, $destinationY, 0)
 		EndIf
 	Until ComputeDistance(DllStructGetData($me, 'X'), DllStructGetData($me, 'Y'), $destinationX, $destinationY) < 25 Or $blockedCount > 14
+	PopContext('MoveTo')
 EndFunc
 
 
@@ -3049,9 +3056,14 @@ EndFunc
 
 ;~ Returns agent ID of a hero.
 Func GetHeroID($heroIndex)
-	If $heroIndex == 0 Then Return GetMyID()
+	PushContext('GetHeroID')
+	If $heroIndex == 0 Then
+		PopContext()
+		Return GetMyID()
+	EndIf
 	Local $offset[6] = [0, 0x18, 0x4C, 0x54, 0x24, 0x18 * ($heroIndex - 1)]
 	Local $agentID = MemoryReadPtr($baseAddressPtr, $offset)
+	PopContext()
 	Return $agentID[1]
 EndFunc
 
@@ -6241,6 +6253,7 @@ EndFunc
 
 ;~ Wait for map to be loaded
 Func WaitMapLoading($mapID = -1, $deadlockTime = 10000, $waitingTime = 5000)
+	PushContext('WaitMapLoading')
 	Local $offset[5] = [0, 0x18, 0x2C, 0x6F0, 0xBC]
 	Local $deadlock = TimerInit()
 	Local $skillbarStruct
@@ -6248,9 +6261,13 @@ Func WaitMapLoading($mapID = -1, $deadlockTime = 10000, $waitingTime = 5000)
 		Sleep(200)
 		$skillbarStruct = MemoryReadPtr($baseAddressPtr, $offset, 'ptr')
 		If $skillbarStruct[0] = 0 Then $deadlock = TimerInit()
-		If TimerDiff($deadlock) > $deadlockTime And $deadlockTime > 0 Then Return False
+		If TimerDiff($deadlock) > $deadlockTime And $deadlockTime > 0 Then
+			PopContext('WaitMapLoading')
+			Return False
+		EndIf
 	Until GetAgentExists(GetMyAgent()) And $skillbarStruct[0] <> 0 And (GetMapID() = $mapID Or $mapID = -1)
 	RndSleep($waitingTime)
+	PopContext('WaitMapLoading')
 	Return True
 EndFunc
 

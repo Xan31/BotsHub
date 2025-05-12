@@ -1089,16 +1089,16 @@ EndFunc
 ;~ Get itemID from an item structure or pointer
 Func GetItemID($item)
 	PushContext('GetItemID')
-	Local $result
+	Local $itemID
 	If IsPtr($item) Then
-		$result = MemoryRead($item, 'long')
+		$itemID = MemoryRead($item, 'long')
 	ElseIf IsDllStruct($item) Then
-		$result = DllStructGetData($item, 'ID')
+		$itemID = DllStructGetData($item, 'ID')
 	Else
-		$result = $item
+		$itemID = $item
 	EndIf
 	PopContext('GetItemID')
-	Return $result
+	Return $itemID
 EndFunc
 
 
@@ -3505,8 +3505,7 @@ EndFunc
 
 ;~ Tests if an agent is moving.
 Func GetIsMoving($agent)
-	If DllStructGetData($agent, 'MoveX') <> 0 Or DllStructGetData($agent, 'MoveY') <> 0 Then Return True
-	Return False
+	Return DllStructGetData($agent, 'MoveX') <> 0 Or DllStructGetData($agent, 'MoveY') <> 0
 EndFunc
 
 
@@ -3548,9 +3547,9 @@ EndFunc
 Func GetIsDead($agent = -2)
 	PushContext('GetIsDead')
 	If $agent == -2 Then $agent = GetMyAgent()
-	Local $result = BitAND(DllStructGetData($agent, 'Effects'), 0x0010)
+	Local $isDead = BitAND(DllStructGetData($agent, 'Effects'), 0x0010) > 0
 	PopContext('GetIsDead')
-	Return $result > 0
+	Return $isDead
 EndFunc
 
 ;~ Tests if an agent has a deep wound.
@@ -3618,8 +3617,7 @@ Func GetAgentName($agent)
 	EndIf
 
 	Local $agentName = MemoryRead($address, 'wchar [128]')
-	$agentName = StringRegExpReplace($agentName, '[<]{1}([^>]+)[>]{1}', '')
-	Return $agentName
+	Return StringRegExpReplace($agentName, '[<]{1}([^>]+)[>]{1}', '')
 EndFunc
 #EndRegion AgentInfo
 
@@ -3729,8 +3727,7 @@ EndFunc
 ;~ Returns the recharge time remaining of an equipped skill in milliseconds.
 Func GetSkillbarSkillRecharge($skillSlot, $heroIndex = 0)
 	Local $timestamp = DllStructGetData(GetSkillbar($heroIndex), 'Recharge' & $skillSlot)
-	If $timestamp == 0 Then Return 0
-	Return $timestamp - GetSkillTimer()
+	Return $timestamp == 0 ? 0 : $timestamp - GetSkillTimer()
 EndFunc
 
 
@@ -4229,9 +4226,8 @@ Func InviteGuild($characterName)
 		DllStructSetData($inviteGuildStruct, 6, 0x02)
 		Enqueue(DllStructGetPtr($inviteGuildStruct), DllStructGetSize($inviteGuildStruct))
 		Return True
-	Else
-		Return False
 	EndIf
+	Return False
 EndFunc
 
 
@@ -4246,9 +4242,8 @@ Func InviteGuest($characterName)
 		DllStructSetData($inviteGuildStruct, 6, 0x01)
 		Enqueue(DllStructGetPtr($inviteGuildStruct), DllStructGetSize($inviteGuildStruct))
 		Return True
-	Else
-		Return False
 	EndIf
+	Return False
 EndFunc
 
 
@@ -4278,9 +4273,8 @@ Func PerformAction($action, $flag)
 		DllStructSetData($actionStruct, 3, $flag)
 		Enqueue($actionStructPtr, 12)
 		Return True
-	Else
-		Return False
 	EndIf
+	Return False
 EndFunc
 
 
@@ -6185,8 +6179,7 @@ EndFunc
 
 ;~ Internal use only.
 Func GetLabelInfo($label)
-	Local Const $value = GetValue($label)
-	Return $value
+	Return GetValue($label)
 EndFunc
 
 
@@ -6293,16 +6286,14 @@ Func GetPartySize()
 	Local $henchmen = MemoryRead($henchmenPtr[0], 'long')
 	Local $heroes = MemoryRead($heroesPtr[0], 'long')
 
-	Local $result = $players + $henchmen + $heroes
-	Return $result
+	Return $players + $henchmen + $heroes
 EndFunc
 
 
 Func GetPartyAlliesSize()
 	Local $offset[5] = [0, 0x18, 0x4C, 0x54, 0x3C]
 	Local $alliesPtr = MemoryReadPtr($baseAddressPtr, $offset)
-	Local $result = MemoryRead($alliesPtr[0], 'long')
-	Return $result
+	Return MemoryRead($alliesPtr[0], 'long')
 EndFunc
 
 
@@ -6424,14 +6415,14 @@ EndFunc
 ;~ Returns amount of slots of bag.
 Func GetMaxSlots($bag)
 	PushContext('GetMaxSlots')
-	Local $slots
+	Local $maxSlots
 	If IsPtr($bag) Then
-		$slots = MemoryRead($bag + 32, 'long')
+		$maxSlots = MemoryRead($bag + 32, 'long')
 	ElseIf IsDllStruct($bag) Then
-		$slots = DllStructGetData($bag, 'Slots')
+		$maxSlots = DllStructGetData($bag, 'Slots')
 	Else
-		$slots = MemoryRead(GetBagPtr($bag) + 32, 'long')
+		$maxSlots = MemoryRead(GetBagPtr($bag) + 32, 'long')
 	EndIf
 	PopContext('GetMaxSlots')
-	Return $slots
+	Return $maxSlots
 EndFunc

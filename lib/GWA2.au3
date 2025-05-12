@@ -2217,18 +2217,29 @@ EndFunc
 
 ;~ Use a skill and wait for it to be done
 Func UseSkillEx($skillSlot, $target = -2, $timeout = 3000)
-	If GetIsDead() Or Not IsRecharged($skillSlot) Then Return
+	PushContext('UseSkillEx')
+	If GetIsDead() Or Not IsRecharged($skillSlot) Then 
+		PopContext('UseSkillEx')
+		Return
+	EndIf
 	Local $Skill = GetSkillByID(GetSkillbarSkillID($skillSlot, 0))
 	Local $Energy = StringReplace(StringReplace(StringReplace(StringMid(DllStructGetData($Skill, 'Unknown4'), 6, 1), 'C', '25'), 'B', '15'), 'A', '10')
-	If GetEnergy() < $Energy Then Return
+	If GetEnergy() < $Energy Then
+		PopContext('UseSkillEx')
+		Return
+	EndIf
 	Local $aftercast = DllStructGetData($Skill, 'Aftercast')
 	Local $deadlock = TimerInit()
 	UseSkill($skillSlot, $target)
 	Do
 		Sleep(50)
-		If GetIsDead() Then Return
+		If GetIsDead() Then
+			PopContext('UseSkillEx')
+			Return
+		EndIf
 	Until (Not IsRecharged($skillSlot)) Or (TimerDiff($deadlock) > $timeout)
 	Sleep($aftercast * 1000)
+	PopContext('UseSkillEx')
 EndFunc
 
 
@@ -3691,6 +3702,7 @@ EndFunc
 #Region Misc
 ;~ Returns skillbar struct.
 Func GetSkillbar($heroIndex = 0)
+	PushContext('GetSkillbar')
 	Local $offset[5] = [0, 0x18, 0x2C, 0x6F0, 0]
 	For $i = 0 To GetHeroCount()
 		$offset[4] = $i * 0xBC
@@ -3698,9 +3710,11 @@ Func GetSkillbar($heroIndex = 0)
 		Local $skillbarStruct = SafeDllStructCreate($skillbarStructTemplate)
 		SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', GetProcessHandle(), 'int', $skillbarStructAddress[0], 'ptr', DllStructGetPtr($skillbarStruct), 'int', DllStructGetSize($skillbarStruct), 'int', 0)
 		If DllStructGetData($skillbarStruct, 'AgentId') == GetHeroID($heroIndex) Then
+			PopContext('GetSkillbar')
 			Return $skillbarStruct
 		EndIf
 	Next
+	PopContext('GetSkillbar')
 EndFunc
 
 
@@ -3775,6 +3789,7 @@ EndFunc
 
 ;~ Returns effect struct or array of effects.
 Func GetEffect($skillID = 0, $heroIndex = 0)
+	PushContext('GetEffect')
 	Local $effectCount, $effectStructAddress
 	; Offsets have to be kept separate - else we risk cross-call contamination - Avoid ReDim !
 	Local $offset1[4] = [0, 0x18, 0x2C, 0x510]
@@ -3805,6 +3820,7 @@ Func GetEffect($skillID = 0, $heroIndex = 0)
 					SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', GetProcessHandle(), 'int', $effectStructAddress[0] + 24 * $i, 'ptr', DllStructGetPtr($effectStruct), 'int', 24, 'int', 0)
 
 					If DllStructGetData($effectStruct, 'SkillID') = $skillID Then
+						PopContext('GetEffect')
 						Return $effectStruct
 					EndIf
 				Next
@@ -3812,6 +3828,7 @@ Func GetEffect($skillID = 0, $heroIndex = 0)
 		EndIf
 	Next
 	Local $emptyArray[1] = [0]
+	PopContext('GetEffect')
 	Return $emptyArray
 EndFunc
 

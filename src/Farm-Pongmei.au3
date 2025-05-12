@@ -95,6 +95,7 @@ EndFunc
 
 ;~ Pongmei Chest farm loop
 Func PongmeiChestFarmLoop($STATUS)
+	PushContext('PongmeiChestFarmLoop')
 	; Need to be done here in case bot comes back from inventory management
 	If GetMapID() <> $ID_Boreas_Seabed Then DistrictTravel($ID_Boreas_Seabed, $DISTRICT_NAME)
 	Info('Starting chest farm run')
@@ -164,6 +165,7 @@ Func PongmeiChestFarmLoop($STATUS)
 	Info('Opened ' & $openedChests & ' chests.')
 	Local $success = $openedChests > 0 And Not GetIsDead() ? 0 : 1
 	BackToBoreasSeabed()
+	PopContext('PongmeiChestFarmLoop')
 	Return $success
 EndFunc
 
@@ -193,6 +195,7 @@ EndFunc
 
 ;~ Main function to run as a Dervish
 Func DervishRun($X, $Y)
+	PushContext('DervishRun')
 	; We could potentially improve bot by avoiding using run stance right before Shadow Form, but that's a very tiny improvement
 	;Local Static $shadowFormLastUse = Null
 	If FindInInventory($ID_Lockpick)[0] == 0 Then
@@ -244,11 +247,13 @@ Func DervishRun($X, $Y)
 		Sleep(250)
 		$me = GetMyAgent()
 	WEnd
+	PopContext('DervishRun')
 EndFunc
 
 
 ;~ Check if there are foes in front so we can use Shadow Form preemptively
 Func AreFoesInFront($X, $Y)
+	PushContext('AreFoesInFront')
 	Local $me = GetMyAgent()
 	Local $myX = DllStructGetData($me, 'X')
 	Local $myY = DllStructGetData($me, 'Y')
@@ -256,14 +261,19 @@ Func AreFoesInFront($X, $Y)
 	Local $foe
 	For $i = 1 To $foes[0]
 		$foe = $foes[$i]
-		If ((ComputeDistance($X, $Y, $myX, $myY) - ComputeDistance($X, $Y, DllStructGetData($foe, 'X'), DllStructGetData($foe, 'Y'))) > 0) Then Return True
+		If ((ComputeDistance($X, $Y, $myX, $myY) - ComputeDistance($X, $Y, DllStructGetData($foe, 'X'), DllStructGetData($foe, 'Y'))) > 0) Then
+			PopContext('AreFoesInFront')
+			Return True
+		EndIf
 	Next
+	PopContext('AreFoesInFront')
 	Return False
 EndFunc
 
 
 ;~ Get an NPC in the back to use Heart of Shadow on - can be a foe or a party member
 Func GetNPCInTheBack($X, $Y)
+	PushContext('GetNPCInTheBack')
 	Local $me = GetMyAgent()
 	Local $myX = DllStructGetData($me, 'X')
 	Local $myY = DllStructGetData($me, 'Y')
@@ -271,14 +281,19 @@ Func GetNPCInTheBack($X, $Y)
 	Local $npc
 	For $i = 1 To $npcs[0]
 		$npc = $npcs[$i]
-		If ((ComputeDistance($X, $Y, $myX, $myY) - ComputeDistance($X, $Y, DllStructGetData($npc, 'X'), DllStructGetData($npc, 'Y'))) < 0) Then Return $npc
+		If ((ComputeDistance($X, $Y, $myX, $myY) - ComputeDistance($X, $Y, DllStructGetData($npc, 'X'), DllStructGetData($npc, 'Y'))) < 0) Then
+			PopContext('GetNPCInTheBack')
+			Return $npc
+		EndIf
 	Next
+	PopContext('GetNPCInTheBack')
 	Return Null
 EndFunc
 
 
 ;~ Get a foe that is in front of you and close enough to use Death Charge on
 Func GetTargetForDeathsCharge($X, $Y, $distance = 700)
+	PushContext('GetTargetForDeathsCharge')
 	Local $me = GetMyAgent()
 	Local $myX = DllStructGetData($me, 'X')
 	Local $myY = DllStructGetData($me, 'Y')
@@ -286,14 +301,19 @@ Func GetTargetForDeathsCharge($X, $Y, $distance = 700)
 	Local $foe
 	For $i = 1 To $foes[0]
 		$foe = $foes[$i]
-		If ((ComputeDistance($X, $Y, $myX, $myY) - ComputeDistance($X, $Y, DllStructGetData($foe, 'X'), DllStructGetData($foe, 'Y'))) > $distance) Then Return $foe
+		If ((ComputeDistance($X, $Y, $myX, $myY) - ComputeDistance($X, $Y, DllStructGetData($foe, 'X'), DllStructGetData($foe, 'Y'))) > $distance) Then 
+			PopContext('GetTargetForDeathsCharge')
+			Return $foe
+		EndIf
 	Next
+	PopContext('GetTargetForDeathsCharge')
 	Return 0
 EndFunc
 
 
 ;~ Use defensive skills while opening chests
 Func DefendWhileOpeningChests()
+	PushContext('DefendWhileOpeningChests')
 	Local $nearestFoe = GetNearestEnemyToAgent(GetMyAgent())
 
 	If GetEnergy() >= 5 And IsRecharged($Pongmei_IAmUnstoppable) And GetDistance(GetMyAgent(), $nearestFoe) < $RANGE_AREA Then UseSkillEx($Pongmei_IAmUnstoppable)
@@ -303,4 +323,5 @@ Func DefendWhileOpeningChests()
 		RndSleep(20)
 		UseSkillEx($Pongmei_ShadowForm)
 	EndIf
+	PopContext('DefendWhileOpeningChests')
 EndFunc

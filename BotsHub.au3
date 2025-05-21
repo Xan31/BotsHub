@@ -64,8 +64,10 @@
 #include 'src/Farm-Pongmei.au3'
 #include 'src/Farm-Raptors.au3'
 #include 'src/Farm-SpiritSlaves.au3'
+#include 'src/Farm-Tasca.au3'
 #include 'src/Farm-Vaettirs.au3'
 #include 'src/Farm-Voltaic.au3'
+#include 'src/Farm-Gemstone.au3'
 #include 'lib/JSON.au3'
 #EndRegion Includes
 
@@ -101,8 +103,9 @@ Global $LOG_LEVEL = 0
 Global $CHARACTER_NAME = ''
 Global $DISTRICT_NAME = 'Random'
 Global $BAG_NUMBER = 5
+Global $TIMESDEPOSITED = 0
 
-Global $AVAILABLE_FARMS = 'Corsairs|Dragon Moss|Eden Iris|Feathers|Follow|Jade Brotherhood|Kournans|Kurzick|Lightbringer|Luxon|Mantids|Ministerial Commendations|OmniFarm|Pongmei|Raptors|SpiritSlaves|Vaettirs|Voltaic|Storage|Tests|Dynamic'
+Global $AVAILABLE_FARMS = 'Corsairs|Dragon Moss|Eden Iris|Feathers|Follow|Gemstone|Jade Brotherhood|Kournans|Kurzick|Lightbringer|Luxon|Mantids|Ministerial Commendations|OmniFarm|Pongmei|Raptors|SpiritSlaves|Tasca|Vaettirs|Voltaic|Storage|Tests|Dynamic'
 Global $AVAILABLE_DISTRICTS = '|Random|China|English|Europe|French|German|International|Italian|Japan|Korea|Polish|Russian|Spanish'
 #EndRegion Variables
 
@@ -113,27 +116,38 @@ Opt('GUICloseOnESC', 0)
 Opt('MustDeclareVars', 1)
 
 Global $GUI_GWBotHub, $GUI_Tabs_Parent, $GUI_Tab_Main, $GUI_Tab_RunOptions, $GUI_Tab_LootOptions, $GUI_Tab_FarmInfos, $GUI_Tab_LootComponents
-Global $GUI_Combo_CharacterChoice, $GUI_Combo_FarmChoice, $GUI_StartButton, $GUI_FarmProgress
+Global $GUI_Console, $GUI_Combo_CharacterChoice, $GUI_Combo_FarmChoice, $GUI_StartButton, $GUI_FarmProgress
+Global $GUI_Input_DynamicExecution, $GUI_Button_DynamicExecution, $GUI_Label_BagNumber, $GUI_Input_BagNumber, $GUI_Label_TravelDistrict, $GUI_Combo_DistrictChoice, $GUI_Icon_SaveConfig, $GUI_Combo_ConfigChoice
 
-Global $GUI_Console
-Global $GUI_Group_RunInfos, $GUI_Label_Runs, $GUI_Label_Failures, $GUI_Label_Time, $GUI_Label_TimePerRun, $GUI_Label_Gold, $GUI_Label_GoldItems, $GUI_Label_Experience
-
-Global $GUI_Group_ItemsLooted, $GUI_Label_ChunkOfDrakeFlesh, $GUI_Label_SkaleFins, $GUI_Label_GlacialStones, $GUI_Label_DiessaChalices, $GUI_Label_RinRelics, $GUI_Label_WintersdayGifts, $GUI_Label_MargoniteGemstone, $GUI_Label_StygianGemstone, $GUI_Label_TitanGemstone, $GUI_Label_TormentGemstone
-Global $GUI_Group_Titles, $GUI_Label_AsuraTitle, $GUI_Label_DeldrimorTitle, $GUI_Label_NornTitle, $GUI_Label_VanguardTitle, $GUI_Label_KurzickTitle, $GUI_Label_LuxonTitle, $GUI_Label_LightbringerTitle, $GUI_Label_SunspearTitle
-Global $GUI_Group_GlobalOptions, $GUI_Checkbox_LoopRuns, $GUI_Checkbox_HM, $GUI_Checkbox_StoreUnidentifiedGoldItems, $GUI_Checkbox_SortItems, $GUI_Checkbox_CollectData, $GUI_Checkbox_IdentifyGoldItems, $GUI_Checkbox_SalvageItems, $GUI_Checkbox_SellItems, $GUI_Checkbox_SellMaterials, $GUI_Checkbox_StoreTheRest, $GUI_Checkbox_BuyEctoplasm, $GUI_Input_DynamicExecution, $GUI_Button_DynamicExecution
-Global $GUI_Label_BagNumber, $GUI_Input_BagNumber, $GUI_Label_TravelDistrict, $GUI_Combo_DistrictChoice
+Global $GUI_Group_RunInfos, _
+		$GUI_Label_Runs_Text, $GUI_Label_Runs_Value, $GUI_Label_Failures_Text, $GUI_Label_Failures_Value, $GUI_Label_Time_Text, $GUI_Label_Time_Value, _
+		$GUI_Label_TimePerRun_Text, $GUI_Label_TimePerRun_Value, $GUI_Label_Gold_Text, $GUI_Label_Gold_Value, $GUI_Label_Ectos_Text, $GUI_Label_Ectos_Value, _
+		$GUI_Label_GoldItems_Text, $GUI_Label_GoldItems_Value, $GUI_Label_Chests_Text, $GUI_Label_Chests_Value, $GUI_Label_Experience_Text, $GUI_Label_Experience_Value
+Global $GUI_Group_ItemsLooted, _
+		$GUI_Label_ChunkOfDrakeFlesh_Text, $GUI_Label_ChunkOfDrakeFlesh_Value, $GUI_Label_SkaleFins_Text, $GUI_Label_SkaleFins_Value, _
+		$GUI_Label_GlacialStones_Text, $GUI_Label_GlacialStones_Value, $GUI_Label_DiessaChalices_Text, $GUI_Label_DiessaChalices_Value, _
+		$GUI_Label_RinRelics_Text, $GUI_Label_RinRelics_Value, $GUI_Label_WintersdayGifts_Text, $GUI_Label_WintersdayGifts_Value, _
+		$GUI_Label_MargoniteGemstone_Text, $GUI_Label_MargoniteGemstone_Value, $GUI_Label_StygianGemstone_Text, $GUI_Label_StygianGemstone_Value, _
+		$GUI_Label_TitanGemstone_Text, $GUI_Label_TitanGemstone_Value, $GUI_Label_TormentGemstone_Text, $GUI_Label_TormentGemstone_Value
+Global $GUI_Group_Titles, _
+		$GUI_Label_AsuraTitle_Text, $GUI_Label_AsuraTitle_Value, $GUI_Label_DeldrimorTitle_Text, $GUI_Label_DeldrimorTitle_Value, $GUI_Label_NornTitle_Text, $GUI_Label_NornTitle_Value, _
+		$GUI_Label_VanguardTitle_Text, $GUI_Label_VanguardTitle_Value, $GUI_Label_KurzickTitle_Text, $GUI_Label_KurzickTitle_Value, $GUI_Label_LuxonTitle_Text, $GUI_Label_LuxonTitle_Value, _
+		$GUI_Label_LightbringerTitle_Text, $GUI_Label_LightbringerTitle_Value, $GUI_Label_SunspearTitle_Text, $GUI_Label_SunspearTitle_Value
+Global $GUI_Group_GlobalOptions, _
+		$GUI_Checkbox_LoopRuns, $GUI_Checkbox_HM, $GUI_Checkbox_StoreUnidentifiedGoldItems, $GUI_Checkbox_SortItems, $GUI_Checkbox_CollectData, $GUI_Checkbox_IdentifyGoldItems, _
+		$GUI_Checkbox_SalvageItems, $GUI_Checkbox_SellItems, $GUI_Checkbox_SellMaterials, $GUI_Checkbox_StoreTheRest, $GUI_Checkbox_StoreGold, $GUI_Checkbox_BuyEctoplasm
 Global $GUI_Group_ConsumableOptions, $GUI_Checkbox_UseConsumables
-Global $GUI_Group_BaseLootOptions, $GUI_Checkbox_LootEverything, $GUI_Checkbox_LootNothing, $GUI_Checkbox_LootRareMaterials, $GUI_Checkbox_LootBasicMaterials, $GUI_Checkbox_LootKeys, $GUI_Checkbox_LootSalvageItems, $GUI_Checkbox_LootTomes, $GUI_Checkbox_LootDyes, $GUI_Checkbox_LootScrolls
-Global $GUI_Group_RarityLootOptions, $GUI_Checkbox_LootGoldItems, $GUI_Checkbox_LootPurpleItems, $GUI_Checkbox_LootBlueItems, $GUI_Checkbox_LootWhiteItems, $GUI_Checkbox_LootGreenItems
-Global $GUI_Group_FarmSpecificLootOptions, $GUI_Checkbox_LootGlacialStones, $GUI_Checkbox_LootMapPieces, $GUI_Checkbox_LootTrophies
-
-Global $GUI_Group_ConsumablesLootOption, $GUI_Checkbox_LootCandyCaneShards, $GUI_Checkbox_LootLunarTokens, $GUI_Checkbox_LootToTBags, $GUI_Checkbox_LootFestiveItems, $GUI_Checkbox_LootAlcohols, $GUI_Checkbox_LootSweets
-
+Global $GUI_Group_BaseLootOptions, _
+		$GUI_Checkbox_LootEverything, $GUI_Checkbox_LootNothing, $GUI_Checkbox_LootRareMaterials, $GUI_Checkbox_LootBasicMaterials, $GUI_Checkbox_LootKeys, $GUI_Checkbox_LootSalvageItems, _
+		$GUI_Checkbox_LootTomes, $GUI_Checkbox_LootDyes, $GUI_Checkbox_LootScrolls
+Global $GUI_Group_RarityLootOptions, _
+		$GUI_Checkbox_LootGoldItems, $GUI_Checkbox_LootPurpleItems, $GUI_Checkbox_LootBlueItems, $GUI_Checkbox_LootWhiteItems, $GUI_Checkbox_LootGreenItems
+Global $GUI_Group_FarmSpecificLootOptions, _
+		$GUI_Checkbox_LootGlacialStones, $GUI_Checkbox_LootMapPieces, $GUI_Checkbox_LootTrophies
+Global $GUI_Group_ConsumablesLootOption, _
+		$GUI_Checkbox_LootCandyCaneShards, $GUI_Checkbox_LootLunarTokens, $GUI_Checkbox_LootToTBags, $GUI_Checkbox_LootFestiveItems, $GUI_Checkbox_LootAlcohols, $GUI_Checkbox_LootSweets
 Global $GUI_Label_CharacterBuild, $GUI_Label_HeroBuild, $GUI_Edit_CharacterBuild, $GUI_Edit_HeroBuild, $GUI_Label_FarmInformations
-
 Global $GUI_Label_ToDoList
-
-Global $GUI_Icon_SaveConfig, $GUI_Combo_ConfigChoice
 
 ;------------------------------------------------------
 ; Title...........:	_guiCreate
@@ -158,42 +172,74 @@ Func createGUI()
 	GUICtrlSetOnEvent($GUI_Tabs_Parent, 'GuiButtonHandler')
 
 	_GUICtrlTab_SetBkColor($GUI_GWBotHub, $GUI_Tabs_Parent, $GUI_GREY_COLOR)
-	$GUI_Console = _GUICtrlRichEdit_Create($GUI_GWBotHub, '', 20, 225, 271, 176, BitOR($ES_MULTILINE, $ES_READONLY, $WS_VSCROLL))
+	$GUI_Console = _GUICtrlRichEdit_Create($GUI_GWBotHub, '', 20, 175, 271, 226, BitOR($ES_MULTILINE, $ES_READONLY, $WS_VSCROLL))
 	_GUICtrlRichEdit_SetCharColor($GUI_Console, $GUI_CONSOLE_GREY_COLOR)
 	_GUICtrlRichEdit_SetBkColor($GUI_Console, 0)
 
-	$GUI_Group_RunInfos = GUICtrlCreateGroup('Infos', 21, 39, 271, 176)
-	$GUI_Label_Runs = GUICtrlCreateLabel('Runs: 0', 31, 64, 246, 16)
-	$GUI_Label_Failures = GUICtrlCreateLabel('Failures: 0', 31, 84, 246, 16)
-	$GUI_Label_Time = GUICtrlCreateLabel('Time: 0', 31, 104, 246, 16)
-	$GUI_Label_TimePerRun = GUICtrlCreateLabel('Time per run: 0', 31, 124, 246, 16)
-	$GUI_Label_Gold = GUICtrlCreateLabel('Gold: 0', 31, 144, 246, 16)
-	$GUI_Label_GoldItems = GUICtrlCreateLabel('Gold Items: 0', 31, 164, 246, 16)
-	$GUI_Label_Experience = GUICtrlCreateLabel('Experience: 0', 31, 184, 246, 16)
+	; === Run Infos ===
+	$GUI_Group_RunInfos = GUICtrlCreateGroup('Infos', 21, 39, 271, 126)
+	$GUI_Label_Runs_Text = GUICtrlCreateLabel('Runs:', 31, 64, 65, 16)
+	$GUI_Label_Runs_Value = GUICtrlCreateLabel('0', 91, 64, 50, 16, $SS_RIGHT)
+	$GUI_Label_Time_Text = GUICtrlCreateLabel('Time:', 31, 84, 45, 16)
+	$GUI_Label_Time_Value = GUICtrlCreateLabel('0', 71, 84, 70, 16, $SS_RIGHT)
+	$GUI_Label_Gold_Text = GUICtrlCreateLabel('Gold:', 31, 104, 65, 16)
+	$GUI_Label_Gold_Value = GUICtrlCreateLabel('0', 91, 104, 50, 16, $SS_RIGHT)
+	$GUI_Label_GoldItems_Text = GUICtrlCreateLabel('Gold Items:', 31, 124, 65, 16)
+	$GUI_Label_GoldItems_Value = GUICtrlCreateLabel('0', 91, 124, 50, 16, $SS_RIGHT)
+	$GUI_Label_Experience_Text = GUICtrlCreateLabel('Experience:', 31, 144, 65, 16)
+	$GUI_Label_Experience_Value = GUICtrlCreateLabel('0', 91, 144, 50, 16, $SS_RIGHT)
+	$GUI_Label_Failures_Text = GUICtrlCreateLabel('Failures:', 161, 64, 65, 16)
+	$GUI_Label_Failures_Value = GUICtrlCreateLabel('0', 231, 64, 50, 16, $SS_RIGHT)
+	$GUI_Label_TimePerRun_Text = GUICtrlCreateLabel('Time per run:', 161, 84, 65, 16)
+	$GUI_Label_TimePerRun_Value = GUICtrlCreateLabel('0', 231, 84, 50, 16, $SS_RIGHT)
+	$GUI_Label_Ectos_Text = GUICtrlCreateLabel('Ectos:', 161, 104, 65, 16)
+	$GUI_Label_Ectos_Value = GUICtrlCreateLabel('0', 231, 104, 50, 16, $SS_RIGHT)
+	$GUI_Label_Chests_Text = GUICtrlCreateLabel('Chests:', 161, 124, 65, 16)
+	$GUI_Label_Chests_Value = GUICtrlCreateLabel('0', 231, 124, 50, 16, $SS_RIGHT)
 	GUICtrlCreateGroup('', -99, -99, 1, 1)
 
+	; === Items Looted ===
 	$GUI_Group_ItemsLooted = GUICtrlCreateGroup('Items', 306, 39, 271, 241)
-	$GUI_Label_GlacialStones = GUICtrlCreateLabel('Glacial Stones: 0', 316, 64, 246, 16)
-	$GUI_Label_ChunkOfDrakeFlesh = GUICtrlCreateLabel('Chunk Of Drake Flesh: 0', 316, 84, 246, 16)
-	$GUI_Label_SkaleFins = GUICtrlCreateLabel('Skale Fins: 0', 316, 104, 246, 16)
-	$GUI_Label_WintersdayGifts = GUICtrlCreateLabel('Wintersday Gifts: 0', 316, 124, 246, 16)
-	$GUI_Label_DiessaChalices = GUICtrlCreateLabel('Diessa Chalices: 0', 316, 144, 246, 16)
-	$GUI_Label_RinRelics = GUICtrlCreateLabel('Rin Relics: 0', 316, 164, 246, 16)
-	$GUI_Label_MargoniteGemstone = GUICtrlCreateLabel('Margonite Gemstone: 0', 316, 184, 246, 16)
-	$GUI_Label_StygianGemstone = GUICtrlCreateLabel('Stygian Gemstone: 0', 315, 205, 246, 16)
-	$GUI_Label_TitanGemstone = GUICtrlCreateLabel('Titan Gemstone: 0', 314, 229, 246, 16)
-	$GUI_Label_TormentGemstone = GUICtrlCreateLabel('Torment Gemstone: 0', 315, 250, 246, 16)
+	$GUI_Label_GlacialStones_Text = GUICtrlCreateLabel('Glacial Stones:', 316, 64, 140, 16)
+	$GUI_Label_GlacialStones_Value = GUICtrlCreateLabel('0', 502, 64, 60, 16, $SS_RIGHT)
+	$GUI_Label_ChunkOfDrakeFlesh_Text = GUICtrlCreateLabel('Chunk Of Drake Flesh:', 316, 84, 140, 16)
+	$GUI_Label_ChunkOfDrakeFlesh_Value = GUICtrlCreateLabel('0', 502, 84, 60, 16, $SS_RIGHT)
+	$GUI_Label_SkaleFins_Text = GUICtrlCreateLabel('Skale Fins:', 316, 104, 140, 16)
+	$GUI_Label_SkaleFins_Value = GUICtrlCreateLabel('0', 502, 104, 60, 16, $SS_RIGHT)
+	$GUI_Label_WintersdayGifts_Text = GUICtrlCreateLabel('Wintersday Gifts:', 316, 124, 140, 16)
+	$GUI_Label_WintersdayGifts_Value = GUICtrlCreateLabel('0', 502, 124, 60, 16, $SS_RIGHT)
+	$GUI_Label_DiessaChalices_Text = GUICtrlCreateLabel('Diessa Chalices:', 316, 144, 140, 16)
+	$GUI_Label_DiessaChalices_Value = GUICtrlCreateLabel('0', 502, 144, 60, 16, $SS_RIGHT)
+	$GUI_Label_RinRelics_Text = GUICtrlCreateLabel('Rin Relics:', 316, 164, 140, 16)
+	$GUI_Label_RinRelics_Value = GUICtrlCreateLabel('0', 502, 164, 60, 16, $SS_RIGHT)
+	$GUI_Label_MargoniteGemstone_Text = GUICtrlCreateLabel('Margonite Gemstone:', 316, 184, 140, 16)
+	$GUI_Label_MargoniteGemstone_Value = GUICtrlCreateLabel('0', 502, 184, 60, 16, $SS_RIGHT)
+	$GUI_Label_StygianGemstone_Text = GUICtrlCreateLabel('Stygian Gemstone:', 316, 205, 140, 16)
+	$GUI_Label_StygianGemstone_Value = GUICtrlCreateLabel('0', 502, 205, 60, 16, $SS_RIGHT)
+	$GUI_Label_TitanGemstone_Text = GUICtrlCreateLabel('Titan Gemstone:', 316, 229, 140, 16)
+	$GUI_Label_TitanGemstone_Value = GUICtrlCreateLabel('0', 502, 229, 60, 16, $SS_RIGHT)
+	$GUI_Label_TormentGemstone_Text = GUICtrlCreateLabel('Torment Gemstone:', 316, 250, 140, 16)
+	$GUI_Label_TormentGemstone_Value = GUICtrlCreateLabel('0', 502, 250, 60, 16, $SS_RIGHT)
 	GUICtrlCreateGroup('', -99, -99, 1, 1)
 
+	; === Titles ===
 	$GUI_Group_Titles = GUICtrlCreateGroup('Titles', 306, 289, 271, 111)
-	$GUI_Label_AsuraTitle = GUICtrlCreateLabel('Asura: 0', 316, 314, 121, 16)
-	$GUI_Label_DeldrimorTitle = GUICtrlCreateLabel('Deldrimor: 0', 316, 334, 121, 16)
-	$GUI_Label_NornTitle = GUICtrlCreateLabel('Norn: 0', 316, 354, 121, 16)
-	$GUI_Label_VanguardTitle = GUICtrlCreateLabel('Vanguard: 0', 316, 374, 121, 16)
-	$GUI_Label_KurzickTitle = GUICtrlCreateLabel('Kurzick: 0', 446, 314, 116, 16)
-	$GUI_Label_LuxonTitle = GUICtrlCreateLabel('Luxon: 0', 446, 334, 116, 16)
-	$GUI_Label_LightbringerTitle = GUICtrlCreateLabel('Lightbringer: 0', 446, 354, 116, 16)
-	$GUI_Label_SunspearTitle = GUICtrlCreateLabel('Sunspear: 0', 446, 374, 116, 16)
+	$GUI_Label_AsuraTitle_Text = GUICtrlCreateLabel('Asura:', 316, 314, 60, 16)
+	$GUI_Label_AsuraTitle_Value = GUICtrlCreateLabel('0', 372, 314, 60, 16, $SS_RIGHT)
+	$GUI_Label_DeldrimorTitle_Text = GUICtrlCreateLabel('Deldrimor:', 316, 334, 60, 16)
+	$GUI_Label_DeldrimorTitle_Value = GUICtrlCreateLabel('0', 372, 334, 60, 16, $SS_RIGHT)
+	$GUI_Label_NornTitle_Text = GUICtrlCreateLabel('Norn:', 316, 354, 60, 16)
+	$GUI_Label_NornTitle_Value = GUICtrlCreateLabel('0', 372, 354, 60, 16, $SS_RIGHT)
+	$GUI_Label_VanguardTitle_Text = GUICtrlCreateLabel('Vanguard:', 316, 374, 60, 16)
+	$GUI_Label_VanguardTitle_Value = GUICtrlCreateLabel('0', 372, 374, 60, 16, $SS_RIGHT)
+	$GUI_Label_KurzickTitle_Text = GUICtrlCreateLabel('Kurzick:', 446, 314, 60, 16)
+	$GUI_Label_KurzickTitle_Value = GUICtrlCreateLabel('0', 502, 314, 60, 16, $SS_RIGHT)
+	$GUI_Label_LuxonTitle_Text = GUICtrlCreateLabel('Luxon:', 446, 334, 60, 16)
+	$GUI_Label_LuxonTitle_Value = GUICtrlCreateLabel('0', 502, 334, 60, 16, $SS_RIGHT)
+	$GUI_Label_LightbringerTitle_Text = GUICtrlCreateLabel('Lightbringer:', 446, 354, 60, 16)
+	$GUI_Label_LightbringerTitle_Value = GUICtrlCreateLabel('0', 502, 354, 60, 16, $SS_RIGHT)
+	$GUI_Label_SunspearTitle_Text = GUICtrlCreateLabel('Sunspear:', 446, 374, 60, 16)
+	$GUI_Label_SunspearTitle_Value = GUICtrlCreateLabel('0', 502, 374, 60, 16, $SS_RIGHT)
 	GUICtrlCreateGroup('', -99, -99, 1, 1)
 
 	$GUI_Tab_RunOptions = GUICtrlCreateTabItem('Run options')
@@ -210,7 +256,8 @@ Func createGUI()
 	$GUI_Checkbox_SellMaterials = GUICtrlCreateCheckbox('Sell Materials', 31, 274, 156, 20)
 	$GUI_Checkbox_SellItems = GUICtrlCreateCheckbox('Sell Items', 31, 304, 156, 20)
 	$GUI_Checkbox_BuyEctoplasm = GUICtrlCreateCheckbox('Buy ectoplasm', 31, 334, 156, 20)
-	$GUI_Checkbox_StoreTheRest = GUICtrlCreateCheckbox('Store the rest', 31, 364, 156, 20)
+	$GUI_Checkbox_StoreTheRest = GUICtrlCreateCheckbox('Store the rest', 31, 364, 100, 20)
+	$GUI_Checkbox_StoreGold = GUICtrlCreateCheckbox('Store Gold', 168, 364, 100, 20)
 	GUICtrlCreateGroup('', -99, -99, 1, 1)
 
 	$GUI_Group_ConsumableOptions = GUICtrlCreateGroup('More options', 305, 40, 271, 361)
@@ -575,6 +622,8 @@ Func RunFarmLoop($Farm)
 			$result =  FeathersFarm($STATUS)
 		Case 'Follow'
 			$result =  FollowerFarm($STATUS)
+		Case 'Gemstone'
+			$result = GemstoneFarm($STATUS)
 		Case 'Jade Brotherhood'
 			$result =  JadeBrotherhoodFarm($STATUS)
 		Case 'Kournans'
@@ -597,6 +646,8 @@ Func RunFarmLoop($Farm)
 			$result =  RaptorFarm($STATUS)
 		Case 'SpiritSlaves'
 			$result =  SpiritSlavesFarm($STATUS)
+		Case 'Tasca'
+			$result =  TascaChestFarm($STATUS)
 		Case 'Vaettirs'
 			$result =  VaettirFarm($STATUS)
 		Case 'Voltaic'
@@ -630,6 +681,7 @@ Func ResetBotsSetups()
 	$KOURNANS_FARM_SETUP					= False
 	$MANTIDS_FARM_SETUP						= False
 	$SPIRIT_SLAVES_FARM_SETUP				= False
+	$TASCA_FARM_SETUP						= False
 	; Those don't need to be reset - group didn't change, build didn't change, and there is no need to refresh portal
 	; BUT those bots MUST tp to the correct map on every loop
 	;$FOLLOWER_SETUP						= False
@@ -664,6 +716,10 @@ Func UpdateFarmDescription($Farm)
 			GUICtrlSetData($GUI_Edit_CharacterBuild, $FollowerSkillbar)
 			GUICtrlSetData($GUI_Edit_HeroBuild, '')
 			GUICtrlSetData($GUI_Label_FarmInformations, $FollowerInformations)
+		Case 'Gemstone'
+			GUICtrlSetData($GUI_Edit_CharacterBuild, $GemstoneFarmSkillbar)
+			GUICtrlSetData($GUI_Edit_HeroBuild, $GemstoneHeroSkillbar)
+			GUICtrlSetData($GUI_Label_FarmInformations, $GemstoneFarmInformations)
 		Case 'Jade Brotherhood'
 			GUICtrlSetData($GUI_Edit_CharacterBuild, $JB_Skillbar)
 			GUICtrlSetData($GUI_Edit_HeroBuild, $JB_Hero_Skillbar)
@@ -708,6 +764,10 @@ Func UpdateFarmDescription($Farm)
 			GUICtrlSetData($GUI_Edit_CharacterBuild, $SpiritSlaves_Skillbar)
 			GUICtrlSetData($GUI_Edit_HeroBuild, '')
 			GUICtrlSetData($GUI_Label_FarmInformations, $SpiritSlavesFarmInformations)
+		Case 'Tasca'
+			GUICtrlSetData($GUI_Edit_CharacterBuild, $TascaChestRunnerSkillbar)
+			GUICtrlSetData($GUI_Edit_HeroBuild, '')
+			GUICtrlSetData($GUI_Label_FarmInformations, $TascaChestRunInformations)
 		Case 'Vaettirs'
 			GUICtrlSetData($GUI_Edit_CharacterBuild, $AMeVaettirsFarmerSkillbar)
 			GUICtrlSetData($GUI_Edit_HeroBuild, '')
@@ -797,6 +857,7 @@ Func WriteConfigToJson()
 	_JSON_addChangeDelete($jsonObject, 'run.sell_items', GUICtrlRead($GUI_Checkbox_SellItems) == 1)
 	_JSON_addChangeDelete($jsonObject, 'run.buy_ectos', GUICtrlRead($GUI_Checkbox_BuyEctoplasm) == 1)
 	_JSON_addChangeDelete($jsonObject, 'run.store_leftovers', GUICtrlRead($GUI_Checkbox_StoreTheRest) == 1)
+	_JSON_addChangeDelete($jsonObject, 'run.store_gold', GUICtrlRead($GUI_Checkbox_StoreGold) == 1)
 	_JSON_addChangeDelete($jsonObject, 'run.district', GUICtrlRead($GUI_Combo_DistrictChoice))
 	_JSON_addChangeDelete($jsonObject, 'run.bag_number', Number(GUICtrlRead($GUI_Input_BagNumber)))
 	_JSON_addChangeDelete($jsonObject, 'consumables.consume', GUICtrlRead($GUI_Checkbox_UseConsumables) == 1)
@@ -844,6 +905,7 @@ Func ReadConfigFromJson($jsonString)
 	GUICtrlSetState($GUI_Checkbox_SellItems, _JSON_Get($jsonObject, 'run.sell_items') ? $GUI_CHECKED : $GUI_UNCHECKED)
 	GUICtrlSetState($GUI_Checkbox_BuyEctoplasm, _JSON_Get($jsonObject, 'run.buy_ectos') ? $GUI_CHECKED : $GUI_UNCHECKED)
 	GUICtrlSetState($GUI_Checkbox_StoreTheRest, _JSON_Get($jsonObject, 'run.store_leftovers') ? $GUI_CHECKED : $GUI_UNCHECKED)
+	GUICtrlSetState($GUI_Checkbox_StoreGold, _JSON_Get($jsonObject, 'run.store_gold') ? $GUI_CHECKED : $GUI_UNCHECKED)
 	Local $district = _JSON_Get($jsonObject, 'run.district')
 	GUICtrlSetData($GUI_Combo_DistrictChoice, $AVAILABLE_DISTRICTS, $district)
 	$DISTRICT_NAME = $district
@@ -885,9 +947,6 @@ EndFunc
 Func Authentification()
 	Local $characterName = GUICtrlRead($GUI_Combo_CharacterChoice)
 	If ($characterName == '') Then
-		MsgBox(0, 'Error', 'No character name given.')
-		Return 1
-	ElseIf($characterName == 'No character selected') Then
 		Warn('Running without authentification.')
 	ElseIf $PROCESS_ID And $RUN_MODE == 'CMD' Then
 		Local $proc_id_int = Number($PROCESS_ID, 2)
@@ -933,15 +992,27 @@ EndFunc
 ;~ Fill statistics
 Func UpdateStats($success, $timer)
 	PushContext('UpdateStats')
+	Local Static $itemsToCount[5] = [$ID_Glob_Of_Ectoplasm, $ID_Margonite_Gemstone, $ID_Stygian_Gemstone, $ID_Titan_Gemstone, $ID_Torment_Gemstone]
 	Local Static $runs = 0
 	Local Static $failures = 0
 	Local Static $time = 0
 
 	Local Static $TotalGold = 0
 	Local Static $InitialGold = 0
+	Local Static $TotalEctos = 0
+	Local Static $InitialEctos = 0
 	Local Static $TotalGoldItems = 0
 	Local Static $InitialGoldItems = 0
+	Local Static $TotalChests = 0
 	Local Static $ExperienceCount = GetExperience()
+	Local Static $TotalMargoniteGemstones = 0
+	Local Static $InitialMargoniteGemstones = 0
+	Local Static $TotalStygianGemstones = 0
+	Local Static $InitialStygianGemstones = 0
+	Local Static $TotalTitanGemstones = 0
+	Local Static $InitialTitanGemstones = 0
+	Local Static $TotalTormentGemstones = 0
+	Local Static $InitialTormentGemstones = 0
 
 	Local Static $AsuraTitlePoints = GetAsuraTitle()
 	Local Static $DeldrimorTitlePoints = GetDeldrimorTitle()
@@ -952,44 +1023,91 @@ Func UpdateStats($success, $timer)
 	Local Static $KurzickTitlePoints = GetKurzickTitle()
 	Local Static $LuxonTitlePoints = GetLuxonTitle()
 
-	; Before every farm loop
+	Local $itemCounts = CountTheseItems($itemsToCount)
+	Local $goldItemsCount = CountGoldItems()
+	Local $goldCharacter = GetGoldCharacter()
+	; -1 : Before every farm loop
 	If $success == -1 Then
-		$InitialGold = GetGoldCharacter()
-		$InitialGoldItems = CountGoldItems()
-	; Not success, not failure, paused
+		$InitialGold = $goldCharacter
+		$InitialGoldItems = $goldItemsCount
+		$InitialEctos = $itemCounts[0]
+		$InitialMargoniteGemstones = $itemCounts[1]
+		$InitialStygianGemstones = $itemCounts[2]
+		$InitialTitanGemstones = $itemCounts[3]
+		$InitialTormentGemstones = $itemCounts[4]
+	; 0 : Success
 	ElseIf $success == 0 Then
 		$runs += 1
 		$time += TimerDiff($timer)
-	; Failure
+	; 1 : Failure
 	ElseIf $success == 1 Then
 		$failures += 1
 		$runs += 1
 		$time += TimerDiff($timer)
 	EndIf
+	; 2 : Pause
 
 	; Global stats
-	GUICtrlSetData($GUI_Label_Runs, 'Runs: ' & $runs)
-	GUICtrlSetData($GUI_Label_Failures, 'Failures: ' & $failures)
-	GUICtrlSetData($GUI_Label_Time, 'Time: ' & Floor($time/3600000) & 'h' & Floor(Mod($time, 3600000)/60000) & 'min' & Floor(Mod($time, 60000)/1000) & 's')
+	GUICtrlSetData($GUI_Label_Runs_Value, $runs)
+	GUICtrlSetData($GUI_Label_Failures_Value, $failures)
+	GUICtrlSetData($GUI_Label_Time_Value, Floor($time/3600000) & 'h ' & Floor(Mod($time, 3600000)/60000) & 'min ' & Floor(Mod($time, 60000)/1000) & 's')
 	Local $timePerRun = $runs == 0 ? 0 : $time / $runs
-	GUICtrlSetData($GUI_Label_TimePerRun, 'Time per run: ' & Floor($timePerRun/60000) & 'min' & Floor(Mod($timePerRun, 60000)/1000) & 's')
-	$TotalGold += GetGoldCharacter() - $InitialGold
-	GUICtrlSetData($GUI_Label_Gold, 'Gold: ' & Floor($TotalGold/1000) & 'k' & Mod($TotalGold, 1000) & 'g')
-	$TotalGoldItems += CountGoldItems() - $InitialGoldItems
-	GUICtrlSetData($GUI_Label_GoldItems, 'Gold Items: ' & $TotalGoldItems)
-	GUICtrlSetData($GUI_Label_Experience, 'Experience: ' & (GetExperience() - $ExperienceCount))
+	GUICtrlSetData($GUI_Label_TimePerRun_Value, Floor($timePerRun/60000) & 'min ' & Floor(Mod($timePerRun, 60000)/1000) & 's')
+	Local $DiffGold = $goldCharacter - $InitialGold
+	Local $DiffGoldDeposit = $DiffGold + ($TIMESDEPOSITED * 60000)
+	GUICtrlSetData($GUI_Label_Gold_Value, Floor($DiffGoldDeposit/1000) & 'k' & Mod($DiffGoldDeposit, 1000) & 'g')
+	$TotalEctos += $itemCounts[0] - $InitialEctos
+	GUICtrlSetData($GUI_Label_Ectos_Value, $TotalEctos)
+	$TotalGoldItems += $goldItemsCount - $InitialGoldItems
+	GUICtrlSetData($GUI_Label_GoldItems_Value, $TotalGoldItems)
+	$TotalChests += CountOpenedChests()
+	ClearChestsMap()
+	GUICtrlSetData($GUI_Label_Chests_Value, $TotalChests)
+	GUICtrlSetData($GUI_Label_Experience_Value, (GetExperience() - $ExperienceCount))
+
+	; Items stats
+	$TotalMargoniteGemstones += $itemCounts[1] - $InitialMargoniteGemstones
+	GUICtrlSetData($GUI_Label_MargoniteGemstone_Value, $TotalMargoniteGemstones)
+	$TotalStygianGemstones += $itemCounts[2] - $InitialStygianGemstones
+	GUICtrlSetData($GUI_Label_StygianGemstone_Value, $TotalStygianGemstones)
+	$TotalTitanGemstones += $itemCounts[3] - $InitialTitanGemstones
+	GUICtrlSetData($GUI_Label_TitanGemstone_Value, $TotalTitanGemstones)
+	$TotalTormentGemstones += $itemCounts[4] - $InitialTormentGemstones
+	GUICtrlSetData($GUI_Label_TormentGemstone_Value, $TotalTormentGemstones)
 
 	; Title stats
-	GUICtrlSetData($GUI_Label_AsuraTitle, 'Asura: ' & GetAsuraTitle() - $AsuraTitlePoints)
-	GUICtrlSetData($GUI_Label_DeldrimorTitle, 'Deldrimor: ' & GetDeldrimorTitle() - $DeldrimorTitlePoints)
-	GUICtrlSetData($GUI_Label_NornTitle, 'Norn: ' & GetNornTitle() - $NornTitlePoints)
-	GUICtrlSetData($GUI_Label_VanguardTitle, 'Vanguard: ' & GetVanguardTitle() - $VanguardTitlePoints)
-	GUICtrlSetData($GUI_Label_KurzickTitle, 'Kurzick: ' & GetKurzickTitle() - $KurzickTitlePoints)
-	GUICtrlSetData($GUI_Label_LuxonTitle, 'Luxon: ' & GetLuxonTitle() - $LuxonTitlePoints)
-	GUICtrlSetData($GUI_Label_LightbringerTitle, 'Lightbringer: ' & GetLightbringerTitle() - $LightbringerTitlePoints)
-	GUICtrlSetData($GUI_Label_SunspearTitle, 'Sunspear: ' & GetSunspearTitle() - $SunspearTitlePoints)
+	GUICtrlSetData($GUI_Label_AsuraTitle_Value, GetAsuraTitle() - $AsuraTitlePoints)
+	GUICtrlSetData($GUI_Label_DeldrimorTitle_Value, GetDeldrimorTitle() - $DeldrimorTitlePoints)
+	GUICtrlSetData($GUI_Label_NornTitle_Value, GetNornTitle() - $NornTitlePoints)
+	GUICtrlSetData($GUI_Label_VanguardTitle_Value, GetVanguardTitle() - $VanguardTitlePoints)
+	GUICtrlSetData($GUI_Label_KurzickTitle_Value, GetKurzickTitle() - $KurzickTitlePoints)
+	GUICtrlSetData($GUI_Label_LuxonTitle_Value, GetLuxonTitle() - $LuxonTitlePoints)
+	GUICtrlSetData($GUI_Label_LightbringerTitle_Value, GetLightbringerTitle() - $LightbringerTitlePoints)
+	GUICtrlSetData($GUI_Label_SunspearTitle_Value, GetSunspearTitle() - $SunspearTitlePoints)
 	PopContext('UpdateStats')
 	Return $timePerRun
+EndFunc
+
+
+;~ Update the gemstone counters
+Func CountTheseItems($itemArray)
+	Local $arraySize = UBound($itemArray)
+	Local $counts[$arraySize]
+	For $bagIndex = 1 To $BAG_NUMBER
+		Local $bag = GetBag($bagIndex)	
+		Local $slots = DllStructGetData($bag, 'Slots')
+		For $slot = 1 To $slots
+			Local $item = GetItemBySlot($bag, $slot)
+			Local $itemID = DllStructGetData($item, 'ModelID')
+			For $i = 0 To $arraySize - 1
+				If $itemID == $itemArray[$i] Then
+					$counts[$i] += DllStructGetData($item, 'Quantity')
+					ExitLoop
+				EndIf
+			Next
+		Next
+	Next
+	Return $counts
 EndFunc
 
 
@@ -1022,6 +1140,8 @@ Func SelectFarmDuration($Farm)
 			Return $FEATHERS_FARM_DURATION
 		Case 'Follow'
 			Return 30 * 60 * 1000
+		Case 'Gemstone'
+			Return $GEMSTONE_FARM_DURATION
 		Case 'Jade Brotherhood'
 			Return $JADEBROTHERHOOD_FARM_DURATION
 		Case 'Kournans'
@@ -1044,6 +1164,8 @@ Func SelectFarmDuration($Farm)
 			Return $RAPTORS_FARM_DURATION
 		Case 'SpiritSlaves'
 			Return $SPIRIT_SLAVES_FARM_DURATION
+		Case 'Tasca'
+			Return $TASCA_FARM_DURATION
 		Case 'Vaettirs'
 			Return $VAETTIRS_FARM_DURATION
 		Case 'Voltaic'

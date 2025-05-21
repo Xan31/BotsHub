@@ -136,6 +136,7 @@ Global Const $ID_Corrupted_Isle				= 537
 Global Const $ID_Isle_Of_Solitude			= 538
 Global Const $ID_Remains_of_Sahlahja		= 545
 Global Const $ID_Moddok_Crevice				= 427
+Global Const $ID_Gate_Of_Anguish			= 474
 ; EotN
 Global Const $ID_Bjora_Marches				= 482
 Global Const $ID_Riven_Earth				= 501
@@ -317,7 +318,7 @@ Global Const $ID_GadgetID_Smol_Chest	= 6062		;Istani chests
 Global Const $ID_GadgetID_NM_Chest		= 4582
 Global Const $ID_GadgetID_HM_Chest		= 8141
 Global Const $Chests_Array[]			= [$ID_GadgetID_Smol_Chest, $ID_GadgetID_NM_Chest, $ID_GadgetID_HM_Chest]
-Global Const $Map_Chests				= MapFromArray($Chests_Array)
+Global Const $Map_Chests_IDs			= MapFromArray($Chests_Array)
 #EndRegion MapMarkers
 
 

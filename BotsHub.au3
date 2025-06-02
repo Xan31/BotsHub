@@ -28,18 +28,20 @@
 #NoTrayIcon
 
 #Region Includes
-#include <ButtonConstants.au3>
-#include <EditConstants.au3>
+; TODO: cleanup needed here, remove any of those if there are no issues showing up
+;#include <ButtonConstants.au3>
+;#include <EditConstants.au3>
+;#include <ComboConstants.au3>
+;#include <FileConstants.au3>
+;#include <Date.au3>
+;#include <GuiEdit.au3>
+
 #include <GUIConstantsEx.au3>
 #include <StaticConstants.au3>
-#include <ScrollBarsConstants.au3>
 #include <WindowsConstants.au3>
-#include <ComboConstants.au3>
-#include <FileConstants.au3>
-#include <Date.au3>
-#include <GuiEdit.au3>
 #include <GuiTab.au3>
 #include <GuiRichEdit.au3>
+#include <GuiTreeView.au3>
 #include <Math.au3>
 
 #include 'lib/GWA2_Headers.au3'
@@ -54,6 +56,7 @@
 #include 'src/Farm-EdenIris.au3'
 #include 'src/Farm-Feathers.au3'
 #include 'src/Farm-Follower.au3'
+#include 'src/Farm-Froggy.au3'
 #include 'src/Farm-JadeBrotherhood.au3'
 #include 'src/Farm-Kournans.au3'
 #include 'src/Farm-Kurzick.au3'
@@ -64,6 +67,7 @@
 #include 'src/Farm-Pongmei.au3'
 #include 'src/Farm-Raptors.au3'
 #include 'src/Farm-SpiritSlaves.au3'
+#include 'src/Farm-SoO.au3'
 #include 'src/Farm-Tasca.au3'
 #include 'src/Farm-Vaettirs.au3'
 #include 'src/Farm-Voltaic.au3'
@@ -94,6 +98,7 @@ Global Const $GUI_CONSOLE_RED_COLOR = 0x0000FF
 Global Const $GUI_WM_COMMAND = 0x0111
 Global Const $GUI_COMBOBOX_DROPDOWN_OPENED = 7
 
+
 ; STOPPED -> INITIALIZED -> RUNNING -> WILL_PAUSE -> PAUSED -> RUNNING
 Global $STATUS = 'STOPPED'
 ; -1 = did not start, 0 = ran fine, 1 = failed, 2 = pause
@@ -103,10 +108,11 @@ Global $LOG_LEVEL = 0
 Global $CHARACTER_NAME = ''
 Global $DISTRICT_NAME = 'Random'
 Global $BAG_NUMBER = 5
+Global $INVENTORY_SPACE_NEEDED = 5
 Global $TIMESDEPOSITED = 0
 
-Global $AVAILABLE_FARMS = 'Corsairs|Dragon Moss|Eden Iris|Feathers|Follow|Gemstone|Jade Brotherhood|Kournans|Kurzick|Lightbringer|Luxon|Mantids|Ministerial Commendations|OmniFarm|Pongmei|Raptors|SpiritSlaves|Tasca|Vaettirs|Voltaic|Storage|Tests|Dynamic'
-Global $AVAILABLE_DISTRICTS = '|Random|China|English|Europe|French|German|International|Italian|Japan|Korea|Polish|Russian|Spanish'
+Global $AVAILABLE_FARMS = 'Corsairs|Dragon Moss|Eden Iris|Feathers|Follow|Froggy|Gemstone|Jade Brotherhood|Kournans|Kurzick|Lightbringer|Luxon|Mantids|Ministerial Commendations|OmniFarm|Pongmei|Raptors|SoO|SpiritSlaves|Tasca|Vaettirs|Voltaic|Storage|Tests|Dynamic'
+Global $AVAILABLE_DISTRICTS = '|Random|America|China|English|French|German|International|Italian|Japan|Korea|Polish|Russian|Spanish'
 #EndRegion Variables
 
 
@@ -147,7 +153,9 @@ Global $GUI_Group_FarmSpecificLootOptions, _
 Global $GUI_Group_ConsumablesLootOption, _
 		$GUI_Checkbox_LootCandyCaneShards, $GUI_Checkbox_LootLunarTokens, $GUI_Checkbox_LootToTBags, $GUI_Checkbox_LootFestiveItems, $GUI_Checkbox_LootAlcohols, $GUI_Checkbox_LootSweets
 Global $GUI_Label_CharacterBuild, $GUI_Label_HeroBuild, $GUI_Edit_CharacterBuild, $GUI_Edit_HeroBuild, $GUI_Label_FarmInformations
+Global $GUI_TreeView_Components, $GUI_JSON_Components, $GUI_ExpandComponentsButton, $GUI_ReduceComponentsButton, $GUI_LoadComponentsButton, $GUI_SaveComponentsButton, $GUI_ApplyComponentsButton
 Global $GUI_Label_ToDoList
+
 
 ;------------------------------------------------------
 ; Title...........:	_guiCreate
@@ -170,8 +178,8 @@ Func createGUI()
 	$GUI_Tabs_Parent = GUICtrlCreateTab(10, 10, 581, 401)
 	$GUI_Tab_Main = GUICtrlCreateTabItem('Main')
 	GUICtrlSetOnEvent($GUI_Tabs_Parent, 'GuiButtonHandler')
-
 	_GUICtrlTab_SetBkColor($GUI_GWBotHub, $GUI_Tabs_Parent, $GUI_GREY_COLOR)
+
 	$GUI_Console = _GUICtrlRichEdit_Create($GUI_GWBotHub, '', 20, 175, 271, 226, BitOR($ES_MULTILINE, $ES_READONLY, $WS_VSCROLL))
 	_GUICtrlRichEdit_SetCharColor($GUI_Console, $GUI_CONSOLE_GREY_COLOR)
 	_GUICtrlRichEdit_SetBkColor($GUI_Console, 0)
@@ -241,6 +249,7 @@ Func createGUI()
 	$GUI_Label_SunspearTitle_Text = GUICtrlCreateLabel('Sunspear:', 446, 374, 60, 16)
 	$GUI_Label_SunspearTitle_Value = GUICtrlCreateLabel('0', 502, 374, 60, 16, $SS_RIGHT)
 	GUICtrlCreateGroup('', -99, -99, 1, 1)
+	GUICtrlCreateTabItem('')
 
 	$GUI_Tab_RunOptions = GUICtrlCreateTabItem('Run options')
 	_GUICtrlTab_SetBkColor($GUI_GWBotHub, $GUI_Tabs_Parent, $GUI_GREY_COLOR)
@@ -274,6 +283,7 @@ Func createGUI()
 	GUICtrlSetBkColor($GUI_Button_DynamicExecution, $GUI_BLUE_COLOR)
 	GUICtrlSetOnEvent($GUI_Button_DynamicExecution, 'GuiButtonHandler')
 	GUICtrlCreateGroup('', -99, -99, 1, 1)
+	GUICtrlCreateTabItem('')
 
 	$GUI_Tab_LootOptions = GUICtrlCreateTabItem('Loot options')
 	_GUICtrlTab_SetBkColor($GUI_GWBotHub, $GUI_Tabs_Parent, $GUI_GREY_COLOR)
@@ -312,6 +322,7 @@ Func createGUI()
 	$GUI_Checkbox_LootLunarTokens = GUICtrlCreateCheckbox('Lunar Tokens', 446, 124, 121, 20)
 	$GUI_Checkbox_LootCandyCaneShards = GUICtrlCreateCheckbox('Candy Cane Shards', 446, 94, 121, 20)
 	GUICtrlCreateGroup('', -99, -99, 1, 1)
+	GUICtrlCreateTabItem('')
 
 	$GUI_Tab_FarmInfos = GUICtrlCreateTabItem('Farm infos')
 	_GUICtrlTab_SetBkColor($GUI_GWBotHub, $GUI_Tabs_Parent, $GUI_GREY_COLOR)
@@ -320,9 +331,22 @@ Func createGUI()
 	$GUI_Label_HeroBuild = GUICtrlCreateLabel('Hero build:', 30, 95, 80, 21)
 	$GUI_Edit_HeroBuild = GUICtrlCreateEdit('', 115, 95, 446, 21, $ES_READONLY, $WS_EX_TOOLWINDOW)
 	$GUI_Label_FarmInformations = GUICtrlCreateLabel('Farm informations:', 30, 135, 531, 156)
+	GUICtrlCreateTabItem('')
 
 	$GUI_Tab_LootComponents = GUICtrlCreateTabItem('Loot components')
-	_GUICtrlTab_SetBkColor($GUI_GWBotHub, $GUI_Tabs_Parent, $GUI_GREY_COLOR)
+	$GUI_TreeView_Components = GUICtrlCreateTreeView(80, 45, 500, 355, BitOR($TVS_HASLINES, $TVS_LINESATROOT, $TVS_HASBUTTONS, $TVS_CHECKBOXES, $TVS_FULLROWSELECT))
+	$GUI_JSON_Components = LoadUpgradeComponents(@ScriptDir & '/conf/loot/upgrade_components.json')
+	BuildTreeViewFromJSON($GUI_TreeView_Components, $GUI_JSON_Components)
+	$GUI_ExpandComponentsButton = GUICtrlCreateButton('Expand all', 21, 154, 55, 21)
+	GUICtrlSetOnEvent($GUI_ExpandComponentsButton, 'GuiButtonHandler')
+	$GUI_ReduceComponentsButton = GUICtrlCreateButton('Reduce all', 21, 184, 55, 21)
+	GUICtrlSetOnEvent($GUI_ReduceComponentsButton, 'GuiButtonHandler')
+	$GUI_LoadComponentsButton = GUICtrlCreateButton('Load', 21, 214, 55, 21)
+	GUICtrlSetOnEvent($GUI_LoadComponentsButton, 'GuiButtonHandler')
+	$GUI_SaveComponentsButton = GUICtrlCreateButton('Save', 21, 244, 55, 21)
+	GUICtrlSetOnEvent($GUI_SaveComponentsButton, 'GuiButtonHandler')
+	$GUI_ApplyComponentsButton = GUICtrlCreateButton('Apply', 21, 274, 55, 21)
+	GUICtrlSetOnEvent($GUI_ApplyComponentsButton, 'GuiButtonHandler')
 	GUICtrlCreateTabItem('')
 
 	$GUI_Combo_ConfigChoice = GUICtrlCreateCombo('Default Configuration', 425, 12, 136, 20)
@@ -352,6 +376,7 @@ Func createGUI()
 	GUICtrlSetState($GUI_Checkbox_LootTrophies, $GUI_CHECKED)
 
 	GUIRegisterMsg($WM_COMMAND, 'WM_COMMAND_Handler')
+	GUIRegisterMsg($WM_NOTIFY, "WM_NOTIFY_Handler")
 EndFunc
 
 
@@ -367,7 +392,7 @@ EndFunc
 
 
 #Region Handlers
-;~ Handles WM_NOTIFY elements, like combobox arrow clicks
+;~ Handles WM_COMMAND elements, like combobox arrow clicks
 Func WM_COMMAND_Handler($windowHandle, $messageCode, $packedParameters, $controlHandle)
 	Local $notificationCode = BitShift($packedParameters, 16)
 	Local $controlID = BitAND($packedParameters, 0xFFFF)
@@ -384,73 +409,173 @@ Func WM_COMMAND_Handler($windowHandle, $messageCode, $packedParameters, $control
 EndFunc
 
 
+;~ Handles WM_NOTIFY elements, like treeview clicks
+Func WM_NOTIFY_Handler($windowHandle, $messageCode, $unusedParam, $paramNotifyStruct)
+    Local $notificationHeader = DllStructCreate("hwnd sourceHandle;int controlId;int notificationCode", $paramNotifyStruct)
+    Local $sourceHandle = DllStructGetData($notificationHeader, "sourceHandle")
+    Local $notificationCode = DllStructGetData($notificationHeader, "notificationCode")
+
+    If $sourceHandle = GUICtrlGetHandle($GUI_TreeView_Components) Then
+        Switch $notificationCode
+            Case $NM_CLICK
+                Local $mousePos = _WinAPI_GetMousePos(True, $sourceHandle)
+                Local $hitTestResult = _GUICtrlTreeView_HitTestEx($sourceHandle, DllStructGetData($mousePos, 1), DllStructGetData($mousePos, 2))
+                Local $clickedItem = DllStructGetData($hitTestResult, "Item")
+                Local $hitFlags = DllStructGetData($hitTestResult, "Flags")
+
+                If $clickedItem <> 0 And BitAND($hitFlags, $TVHT_ONITEMSTATEICON) Then
+                    toggleCheckboxCascade($sourceHandle, $clickedItem, True)
+                EndIf
+
+            Case $TVN_KEYDOWN
+                Local $keyInfo = DllStructCreate("hwnd;int;int;short key;uint", $paramNotifyStruct)
+                Local $selectedItem = _GUICtrlTreeView_GetSelection($sourceHandle)
+				; Spacebar pressed
+                If DllStructGetData($keyInfo, "key") = 0x20 And $selectedItem Then
+                    toggleCheckboxCascade($sourceHandle, $selectedItem, True)
+                EndIf
+        EndSwitch
+    EndIf
+
+    Return $GUI_RUNDEFMSG
+EndFunc
+
+
+;~ Toggles checkbox state on a TreeView item and cascades it to children
+Func ToggleCheckboxCascade($treeViewHandle, $itemHandle, $toggleFromRoot = False)
+    Local $isChecked = _GUICtrlTreeView_GetChecked($treeViewHandle, $itemHandle)
+    If $toggleFromRoot Then $isChecked = Not $isChecked
+
+    If _GUICtrlTreeView_GetChildren($treeViewHandle, $itemHandle) Then
+        Local $childHandle = _GUICtrlTreeView_GetFirstChild($treeViewHandle, $itemHandle)
+        Do
+            _GUICtrlTreeView_SetChecked($treeViewHandle, $childHandle, $isChecked)
+            If _GUICtrlTreeView_GetChildren($treeViewHandle, $childHandle) Then
+                toggleCheckboxCascade($treeViewHandle, $childHandle)
+            EndIf
+            $childHandle = _GUICtrlTreeView_GetNextChild($treeViewHandle, $childHandle)
+        Until $childHandle = 0
+    EndIf
+EndFunc
+
+
+;~ Cascading checks in the treeview - unused for now
+Func CascadeSetChecked($nodeHandle, $checked)
+	If Not IsInt($nodeHandle) Then Return
+	_GUICtrlTreeView_SetChecked($GUI_TreeView_Components, $nodeHandle, $checked)
+	If MapExists($GUI_HandleTree, $nodeHandle) Then
+		For $child In $GUI_HandleTree[$nodeHandle]
+			CascadeSetChecked($child, $checked)
+		Next
+	EndIf
+EndFunc
+
+
 ;~ Handle start button usage
 Func GuiButtonHandler()
 	Switch @GUI_CtrlId
 		Case $GUI_Tabs_Parent
-			Switch GUICtrlRead($GUI_Tabs_Parent)
-				Case 0
-					ControlEnable($GUI_GWBotHub, '', $GUI_Console)
-					ControlShow($GUI_GWBotHub, '', $GUI_Console)
-				Case Else
-					ControlDisable($GUI_GWBotHub, '', $GUI_Console)
-					ControlHide($GUI_GWBotHub, '', $GUI_Console)
-			EndSwitch
+			TabHandler()
 		Case $GUI_Combo_FarmChoice
-			Local $Farm = GUICtrlRead($GUI_Combo_FarmChoice)
-			UpdateFarmDescription($Farm)
+			UpdateFarmDescription(GUICtrlRead($GUI_Combo_FarmChoice))
 		Case $GUI_Input_BagNumber
 			$BAG_NUMBER = Number(GUICtrlRead($GUI_Input_BagNumber))
 			$BAG_NUMBER = _Max($BAG_NUMBER, 1)
 			$BAG_NUMBER = _Min($BAG_NUMBER, 5)
 		Case $GUI_Combo_ConfigChoice
-			Local $Configuration = GUICtrlRead($GUI_Combo_ConfigChoice)
-			LoadConfiguration($Configuration)
+			LoadConfiguration(GUICtrlRead($GUI_Combo_ConfigChoice))
 		Case $GUI_Combo_DistrictChoice
 			$DISTRICT_NAME = GUICtrlRead($GUI_Combo_DistrictChoice)
 		Case $GUI_Icon_SaveConfig
 			GUICtrlSetState($GUI_Icon_SaveConfig, $GUI_DISABLE)
-			Local $filePath = FileSaveDialog('', @ScriptDir & '\conf', '(*.json)')
+			Local $filePath = FileSaveDialog('', @ScriptDir & '\conf\characters', '(*.json)')
 			If @error <> 0 Then
 				Warn('Failed to write JSON configuration.')
 			Else
 				SaveConfiguration($filePath)
 			EndIf
 			GUICtrlSetState($GUI_Icon_SaveConfig, $GUI_ENABLE)
+		Case $GUI_ExpandComponentsButton
+			_GUICtrlTreeView_Expand(GUICtrlGetHandle($GUI_TreeView_Components), 0, True)
+		Case $GUI_ReduceComponentsButton
+			_GUICtrlTreeView_Expand(GUICtrlGetHandle($GUI_TreeView_Components), 0, False)
+		Case $GUI_LoadComponentsButton
+			Local $filePath = FileOpenDialog('Please select a valid components file', @ScriptDir & '\conf\loot', '(*.json)')
+			If @error <> 0 Then
+				Warn('Failed to read JSON components configuration.')
+			Else
+				$GUI_JSON_Components = LoadUpgradeComponents($filePath)
+				_GUICtrlTreeView_DeleteAll($GUI_TreeView_Components)
+				BuildTreeViewFromJSON($GUI_TreeView_Components, $GUI_JSON_Components)
+			EndIf
+		Case $GUI_SaveComponentsButton
+			Local $jsonObject = BuildJSONFromTreeView($GUI_TreeView_Components)
+			Local $jsonString = _JSON_Generate($jsonObject)
+			Local $filePath = FileSaveDialog('', @ScriptDir & '\conf\loot', '(*.json)')
+			If @error <> 0 Then
+				Warn('Failed to write JSON components configuration.')
+			Else
+				Local $configFile = FileOpen($filePath, $FO_OVERWRITE + $FO_CREATEPATH + $FO_UTF8)
+				FileWrite($configFile, $jsonString)
+				FileClose($configFile)
+				Info('Saved components configuration ' & $configFile)
+			EndIf
+		Case $GUI_ApplyComponentsButton
+			RefreshValuableListsFromInterface()
 		Case $GUI_Button_DynamicExecution
 			DynamicExecution(GUICtrlRead($GUI_Input_DynamicExecution))
 		Case $GUI_StartButton
-			If $STATUS == 'STOPPED' Then
-				Info('Initializing...')
-				If (Authentification() <> 0) Then Return
-				$STATUS = 'INITIALIZED'
-				Info('Starting...')
-				$STATUS = 'RUNNING'
-				GUICtrlSetData($GUI_StartButton, 'Pause')
-				GUICtrlSetBkColor($GUI_StartButton, $GUI_RED_COLOR)
-			ElseIf $STATUS == 'INITIALIZED' Then
-				Info('Starting...')
-				$STATUS = 'RUNNING'
-			ElseIf $STATUS == 'RUNNING' Then
-				Info('Pausing...')
-				GUICtrlSetData($GUI_StartButton, 'Will pause after this run')
-				GUICtrlSetState($GUI_StartButton, $GUI_Disable)
-				GUICtrlSetBkColor($GUI_StartButton, $GUI_YELLOW_COLOR)
-				$STATUS = 'WILL_PAUSE'
-			ElseIf $STATUS == 'WILL_PAUSE' Then
-				MsgBox(0, 'Error', 'You should not be able to press Pause when bot it already pausing.')
-			ElseIf $STATUS == 'PAUSED' Then
-				Info('Restarting...')
-				GUICtrlSetData($GUI_StartButton, 'Pause')
-				GUICtrlSetBkColor($GUI_StartButton, $GUI_RED_COLOR)
-				$STATUS = 'RUNNING'
-			Else
-				MsgBox(0, 'Error', 'Unknown status '' & $STATUS & ''')
-			EndIf
+			StartButtonHandler()
 		Case $GUI_EVENT_CLOSE
 			Exit
 		Case Else
 			MsgBox(0, 'Error', 'This button is not coded yet.')
+	EndSwitch
+EndFunc
+
+
+;~ Function handling tab changes
+Func TabHandler()
+	Switch GUICtrlRead($GUI_Tabs_Parent)
+		Case 0
+			ControlEnable($GUI_GWBotHub, '', $GUI_Console)
+			ControlShow($GUI_GWBotHub, '', $GUI_Console)
+		Case Else
+			ControlDisable($GUI_GWBotHub, '', $GUI_Console)
+			ControlHide($GUI_GWBotHub, '', $GUI_Console)
+	EndSwitch
+EndFunc
+
+
+;~ Function handling start button
+Func StartButtonHandler()
+	Switch $STATUS
+		Case 'STOPPED'
+			Info('Initializing...')
+			If (Authentification() <> 0) Then Return
+			$STATUS = 'INITIALIZED'
+			Info('Starting...')
+			$STATUS = 'RUNNING'
+			GUICtrlSetData($GUI_StartButton, 'Pause')
+			GUICtrlSetBkColor($GUI_StartButton, $GUI_RED_COLOR)
+		Case 'INITIALIZED'
+			Info('Starting...')
+			$STATUS = 'RUNNING'
+		Case 'RUNNING'
+			Info('Pausing...')
+			GUICtrlSetData($GUI_StartButton, 'Will pause after this run')
+			GUICtrlSetState($GUI_StartButton, $GUI_Disable)
+			GUICtrlSetBkColor($GUI_StartButton, $GUI_YELLOW_COLOR)
+			$STATUS = 'WILL_PAUSE'
+		Case 'WILL_PAUSE'
+			MsgBox(0, 'Error', 'You should not be able to press Pause when bot is already pausing.')
+		Case 'PAUSED'
+			Info('Restarting...')
+			GUICtrlSetData($GUI_StartButton, 'Pause')
+			GUICtrlSetBkColor($GUI_StartButton, $GUI_RED_COLOR)
+			$STATUS = 'RUNNING'
+		Case Else
+			MsgBox(0, 'Error', 'Unknown status "' & $STATUS & '"')
 	EndSwitch
 EndFunc
 #EndRegion Handlers
@@ -572,11 +697,11 @@ Func BotHubLoop()
 			Else
 				; During pickup, items will be moved to equipment bag (if used) when first 3 bags are full
 				; So bag 5 will always fill before 4 - hence we can count items up to bag 4
-				If (CountSlots(1, _Min($BAG_NUMBER, 4)) < 5) Then
+				If (CountSlots(1, _Min($BAG_NUMBER, 4)) <= $INVENTORY_SPACE_NEEDED) Then
 					InventoryManagement()
 					ResetBotsSetups()
 				EndIf
-				If (CountSlots(1, $BAG_NUMBER) < 5) Then
+				If (CountSlots(1, $BAG_NUMBER) <= $INVENTORY_SPACE_NEEDED) Then
 					Notice('Inventory full, pausing.')
 					ResetBotsSetups()
 					$STATUS = 'WILL_PAUSE'
@@ -613,46 +738,74 @@ Func RunFarmLoop($Farm)
 			GUICtrlSetData($GUI_StartButton, 'Start')
 			GUICtrlSetBkColor($GUI_StartButton, $GUI_BLUE_COLOR)
 		Case 'Corsairs'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  CorsairsFarm($STATUS)
 		Case 'Dragon Moss'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  DragonMossFarm($STATUS)
 		Case 'Eden Iris'
+			$INVENTORY_SPACE_NEEDED = 2
 			$result =  EdenIrisFarm($STATUS)
 		Case 'Feathers'
+			$INVENTORY_SPACE_NEEDED = 10
 			$result =  FeathersFarm($STATUS)
 		Case 'Follow'
+			$INVENTORY_SPACE_NEEDED = 15
 			$result =  FollowerFarm($STATUS)
+		Case 'Froggy'
+			$INVENTORY_SPACE_NEEDED = 10
+			$result =  FroggyFarm($STATUS)
 		Case 'Gemstone'
+			$INVENTORY_SPACE_NEEDED = 10
 			$result = GemstoneFarm($STATUS)
 		Case 'Jade Brotherhood'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  JadeBrotherhoodFarm($STATUS)
 		Case 'Kournans'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  KournansFarm($STATUS)
 		Case 'Kurzick'
+			$INVENTORY_SPACE_NEEDED = 15
 			$result =  KurzickFactionFarm($STATUS)
 		Case 'Lightbringer'
+			$INVENTORY_SPACE_NEEDED = 10
 			$result =  LightbringerFarm($STATUS)
 		Case 'Luxon'
+			$INVENTORY_SPACE_NEEDED = 10
 			$result =  LuxonFactionFarm($STATUS)
 		Case 'Mantids'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  MantidsFarm($STATUS)
 		Case 'Ministerial Commendations'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  MinisterialCommendationsFarm($STATUS)
 		Case 'OmniFarm'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  OmniFarm($STATUS)
 		Case 'Pongmei'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  PongmeiChestFarm($STATUS)
 		Case 'Raptors'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  RaptorFarm($STATUS)
+		Case 'SoO'
+			$INVENTORY_SPACE_NEEDED = 15
+			$result =  SoOFarm($STATUS)
 		Case 'SpiritSlaves'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  SpiritSlavesFarm($STATUS)
 		Case 'Tasca'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  TascaChestFarm($STATUS)
 		Case 'Vaettirs'
+			$INVENTORY_SPACE_NEEDED = 5
 			$result =  VaettirFarm($STATUS)
 		Case 'Voltaic'
+			$INVENTORY_SPACE_NEEDED = 10
 			$result =  VoltaicFarm($STATUS)
 		Case 'Storage'
+			$INVENTORY_SPACE_NEEDED = 5
+			ResetBotsSetups()
 			$result =  ManageInventory($STATUS)
 		Case 'Dynamic'
 			Info('Dynamic execution')
@@ -677,9 +830,11 @@ Func ResetBotsSetups()
 	$DM_FARM_SETUP							= False
 	$IRIS_FARM_SETUP						= False
 	$FEATHERS_FARM_SETUP					= False
+	$FROGGY_FARM_SETUP						= False
 	$JADE_BROTHERHOOD_FARM_SETUP			= False
 	$KOURNANS_FARM_SETUP					= False
 	$MANTIDS_FARM_SETUP						= False
+	$SOO_FARM_SETUP							= False
 	$SPIRIT_SLAVES_FARM_SETUP				= False
 	$TASCA_FARM_SETUP						= False
 	; Those don't need to be reset - group didn't change, build didn't change, and there is no need to refresh portal
@@ -716,6 +871,10 @@ Func UpdateFarmDescription($Farm)
 			GUICtrlSetData($GUI_Edit_CharacterBuild, $FollowerSkillbar)
 			GUICtrlSetData($GUI_Edit_HeroBuild, '')
 			GUICtrlSetData($GUI_Label_FarmInformations, $FollowerInformations)
+		Case 'Froggy'
+			GUICtrlSetData($GUI_Edit_CharacterBuild, $FroggyFarmerSkillbar)
+			GUICtrlSetData($GUI_Edit_HeroBuild, '')
+			GUICtrlSetData($GUI_Label_FarmInformations, $FroggyFarmInformations)
 		Case 'Gemstone'
 			GUICtrlSetData($GUI_Edit_CharacterBuild, $GemstoneFarmSkillbar)
 			GUICtrlSetData($GUI_Edit_HeroBuild, $GemstoneHeroSkillbar)
@@ -760,6 +919,10 @@ Func UpdateFarmDescription($Farm)
 			GUICtrlSetData($GUI_Edit_CharacterBuild, $WNRaptorFarmerSkillbar)
 			GUICtrlSetData($GUI_Edit_HeroBuild, $PRunnerHeroSkillbar)
 			GUICtrlSetData($GUI_Label_FarmInformations, $RaptorsFarmInformations)
+		Case 'SoO'
+			GUICtrlSetData($GUI_Edit_CharacterBuild, $SoOFarmerSkillbar)
+			GUICtrlSetData($GUI_Edit_HeroBuild, '')
+			GUICtrlSetData($GUI_Label_FarmInformations, $SoOFarmInformations)
 		Case 'SpiritSlaves'
 			GUICtrlSetData($GUI_Edit_CharacterBuild, $SpiritSlaves_Skillbar)
 			GUICtrlSetData($GUI_Edit_HeroBuild, '')
@@ -792,7 +955,7 @@ EndFunc
 #Region Configuration
 ;~ Fill the choice of configuration
 Func FillConfigurationCombo($configuration = 'Default Configuration')
-	Local $files = _FileListToArray(@ScriptDir & '/conf/', '*.json', $FLTA_FILES)
+	Local $files = _FileListToArray(@ScriptDir & '/conf/characters/', '*.json', $FLTA_FILES)
 	Local $comboList = ''
 	If @error == 0 Then
 		For $file In $files
@@ -810,7 +973,7 @@ EndFunc
 ;~ Load default configuration if it exists
 Func LoadDefaultConfiguration()
 	If FileExists(@ScriptDir & '/conf/Default Configuration.json') Then
-		Local $configFile = FileOpen(@ScriptDir & '/conf/Default Configuration.json' , $FO_READ + $FO_UTF8)
+		Local $configFile = FileOpen(@ScriptDir & '/conf/characters/Default Configuration.json' , $FO_READ + $FO_UTF8)
 		Local $jsonString = FileRead($configFile)
 		ReadConfigFromJson($jsonString)
 		FileClose($configFile)
@@ -821,7 +984,7 @@ EndFunc
 
 ;~ Change to a different configuration
 Func LoadConfiguration($configuration)
-	Local $configFile = FileOpen(@ScriptDir & '/conf/' & $configuration & '.json' , $FO_READ + $FO_UTF8)
+	Local $configFile = FileOpen(@ScriptDir & '/conf/characters/' & $configuration & '.json' , $FO_READ + $FO_UTF8)
 	Local $jsonString = FileRead($configFile)
 	ReadConfigFromJson($jsonString)
 	FileClose($configFile)
@@ -938,6 +1101,111 @@ Func ReadConfigFromJson($jsonString)
 	GUICtrlSetState($GUI_Checkbox_LootToTBags, _JSON_Get($jsonObject, 'loot.consumables.trick_or_treat_bags') ? $GUI_CHECKED : $GUI_UNCHECKED)
 	GUICtrlSetState($GUI_Checkbox_LootCandyCaneShards, _JSON_Get($jsonObject, 'loot.consumables.candy_cane_shards') ? $GUI_CHECKED : $GUI_UNCHECKED)
 	GUICtrlSetState($GUI_Checkbox_LootLunarTokens, _JSON_Get($jsonObject, 'loot.consumables.lunar_tokens') ? $GUI_CHECKED : $GUI_UNCHECKED)
+EndFunc
+
+
+;~ Creating a treeview from a JSON node
+Func BuildTreeViewFromJSON($parentItem, $jsonNode)
+	; Unused for now, but might become useful
+	Local $GUI_HandleTree[]
+	If IsMap($jsonNode) Then
+		Local $keys = MapKeys($jsonNode)
+		For $i = 0 To UBound($keys) - 1
+			Local $keyHandle = GUICtrlCreateTreeViewItem($keys[$i], $parentItem)
+			Local $valueHandle = BuildTreeViewFromJSON($keyHandle, $jsonNode[$keys[$i]])
+			If $valueHandle == True Then
+				_GUICtrlTreeView_SetChecked($GUI_TreeView_Components, $keyHandle, True)
+			Else
+				$GUI_HandleTree[$keyHandle] = $valueHandle
+			EndIf
+		Next
+	ElseIf IsArray($jsonNode) Then
+		Local $handles[UBound($jsonNode)]
+		For $i = 0 To UBound($jsonNode) - 1
+			$handles[$i] = BuildTreeViewFromJSON($parentItem, $jsonNode[$i])
+		Next
+		Return $handles
+	Else
+		Return $jsonNode
+	EndIf
+EndFunc
+
+
+;~
+Func GetComponentsTickedCheckboxes($startingPoint)
+	Return BuildArrayFromTreeView($GUI_TreeView_Components, _GUICtrlTreeView_FindItem($GUI_TreeView_Components, $startingPoint))
+EndFunc
+
+
+;~ Creating a JSON node from a treeview
+Func BuildJSONFromTreeView($treeViewHandle, $treeViewItem = Null, $currentPath = '')
+	Local $jsonObject
+	IterateOverTreeView($jsonObject, $treeViewHandle, $treeViewItem, $currentPath, AddLeavesToJSONObject)
+	Return $jsonObject
+EndFunc
+
+
+;~ Utility function to add treeview elements to a JSON object
+Func AddLeavesToJSONObject(ByRef $context, $treeViewHandle, $treeViewItem, $currentPath)
+	Out($currentPath)
+	_JSON_addChangeDelete($context, $currentPath, _GUICtrlTreeView_GetChecked($treeViewHandle, $treeViewItem))
+EndFunc
+
+
+;~ Creating an array from a treeview
+Func BuildArrayFromTreeView($treeViewHandle, $treeViewItem = Null, $currentPath = '')
+	Local $array[0]
+	IterateOverTreeView($array, $treeViewHandle, $treeViewItem, $currentPath, AddLeafToArray)
+	Return $array
+EndFunc
+
+
+;~ Utility function to add treeview elements to an array
+Func AddLeafToArray(ByRef $context, $treeViewHandle, $treeViewItem, $currentPath)
+	If _GUICtrlTreeView_GetChecked($treeViewHandle, $treeViewItem) Then _ArrayAdd($context, $currentPath)
+EndFunc
+
+
+;~ Iterate over a treeview and make an operation on leaves
+Func IterateOverTreeView(ByRef $context, $treeViewHandle, $treeViewItem = Null, $currentPath = '', $functionToApply = Null)
+	; Entry point: no item passed in
+	If $treeViewItem == Null Then
+		$treeViewItem = _GUICtrlTreeView_GetFirstItem($treeViewHandle)
+		While $treeViewItem <> 0
+			IterateOverTreeView($context, $treeViewHandle, $treeViewItem, '', $functionToApply)
+			$treeViewItem = _GUICtrlTreeView_GetNextSibling($treeViewHandle, $treeViewItem)
+		WEnd
+		Return
+	EndIf
+
+	$currentPath &= ($currentPath = '') ? _GUICtrlTreeView_GetText($treeViewHandle, $treeViewItem) : '.' & _GUICtrlTreeView_GetText($treeViewHandle, $treeViewItem)
+
+	Local $childrenCount = _GUICtrlTreeView_GetChildCount($treeViewHandle, $treeViewItem)
+	; We are on a leaf
+	If $childrenCount <= 0 Then
+		If $functionToApply <> Null Then $functionToApply($context, $treeViewHandle, $treeViewItem, $currentPath)
+	ElseIf $childrenCount == 1 Then
+		IterateOverTreeView($context, $treeViewHandle, _GUICtrlTreeView_GetFirstChild($treeViewHandle, $treeViewItem), $currentPath, $functionToApply)
+	Else
+		Local $currentChild = _GUICtrlTreeView_GetFirstChild($treeViewHandle, $treeViewItem)
+		IterateOverTreeView($context, $treeViewHandle, $currentChild, $currentPath, $functionToApply)
+		For $i = 1 To $childrenCount - 1
+			$currentChild = _GUICtrlTreeView_GetNextChild($treeViewHandle, $currentChild)
+			IterateOverTreeView($context, $treeViewHandle, $currentChild, $currentPath, $functionToApply)
+		Next
+	EndIf
+EndFunc
+
+
+;~ Load upgrade components file if it exists
+Func LoadUpgradeComponents($filePath)
+	If FileExists($filePath) Then
+		Local $componentsFile = FileOpen($filePath, $FO_READ + $FO_UTF8)
+		Local $jsonString = FileRead($componentsFile)
+		FileClose($componentsFile)
+		Return _JSON_Parse($jsonString)
+	EndIf
+	Return Null
 EndFunc
 #EndRegion Configuration
 
@@ -1086,28 +1354,6 @@ Func UpdateStats($success, $timer)
 	GUICtrlSetData($GUI_Label_SunspearTitle_Value, GetSunspearTitle() - $SunspearTitlePoints)
 	PopContext('UpdateStats')
 	Return $timePerRun
-EndFunc
-
-
-;~ Update the gemstone counters
-Func CountTheseItems($itemArray)
-	Local $arraySize = UBound($itemArray)
-	Local $counts[$arraySize]
-	For $bagIndex = 1 To $BAG_NUMBER
-		Local $bag = GetBag($bagIndex)	
-		Local $slots = DllStructGetData($bag, 'Slots')
-		For $slot = 1 To $slots
-			Local $item = GetItemBySlot($bag, $slot)
-			Local $itemID = DllStructGetData($item, 'ModelID')
-			For $i = 0 To $arraySize - 1
-				If $itemID == $itemArray[$i] Then
-					$counts[$i] += DllStructGetData($item, 'Quantity')
-					ExitLoop
-				EndIf
-			Next
-		Next
-	Next
-	Return $counts
 EndFunc
 
 

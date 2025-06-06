@@ -777,7 +777,7 @@ Func DefaultCreateValuableRunesAndInsigniasArray()
 	Local $Valuable_Runes_And_Insignias_Structs_Array[]	= [ _
 		$Struct_Warrior_Insignias_Sentinels, _
 		_ ;$Struct_Ranger_Insignias_Beastmasters, _
-		$Struct_Monk_Insignias_Anchorites, _				;Not that valuable, but I need those
+		_ ;$Struct_Monk_Insignias_Anchorites, _
 		_ ;$Struct_Monk_Runes_Minor_Divine_Favor, _
 		_ ;$Struct_Necromancer_Insignias_Bloodstained, _
 		$Struct_Necromancer_Insignias_Tormentors, _
@@ -1059,9 +1059,9 @@ EndFunc
 
 ;~ Replace valuable runes/insignias/inscriptions/mods default list by the list of elements present in interface
 Func RefreshValuableListsFromInterface()
-	$Valuable_Runes_And_Insignias_Structs_Array[] = CreateValuableRunesAndInsigniasArray()
-	$ValuableModsByOSWeaponType = CreateValuableModsByOSWeaponTypeMap()
-	$ValuableModsByWeaponType = CreateValuableModsByWeaponTypeMap()
+	$Valuable_Runes_And_Insignias_Structs_Array = CreateValuableRunesAndInsigniasArray()
+	;$ValuableModsByOSWeaponType = CreateValuableModsByOSWeaponTypeMap()
+	;$ValuableModsByWeaponType = CreateValuableModsByWeaponTypeMap()
 EndFunc
 
 

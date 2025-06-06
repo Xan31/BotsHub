@@ -347,17 +347,6 @@ EndFunc
 
 
 #Region Inventory or Chest
-;~ Find the first empty slot in the given bag
-Func FindEmptySlot($bag)
-	Local $item
-	For $slot = 1 To DllStructGetData(GetBag($bag), 'Slots')
-		$item = GetItemBySlot($bag, $slot)
-		If DllStructGetData($item, 'ID') = 0 Then Return $slot
-	Next
-	Return 0
-EndFunc
-
-
 ;~ Find all empty slots in the given bag
 Func FindEmptySlots($bagId)
 	Local $bag = GetBag($bagId)
@@ -376,8 +365,14 @@ EndFunc
 
 ;~ Find first empty slot in chest
 Func FindChestFirstEmptySlot()
+	Return FindFirstEmptySlot(8, 21)
+EndFunc
+
+
+;~ Find first empty slot in bags from firstBag to lastBag
+Func FindFirstEmptySlot($firstBag, $lastBag)
 	Local $bagEmptySlot[2] = [0, 0]
-	For $i = 8 To 21
+	For $i = $firstBag To $lastBag
 		$bagEmptySlot[1] = FindEmptySlot($i)
 		If $bagEmptySlot[1] <> 0 Then
 			$bagEmptySlot[0] = $i
@@ -385,6 +380,17 @@ Func FindChestFirstEmptySlot()
 		EndIf
 	Next
 	Return $bagEmptySlot
+EndFunc
+
+
+;~ Find the first empty slot in the given bag
+Func FindEmptySlot($bag)
+	Local $item
+	For $slot = 1 To DllStructGetData(GetBag($bag), 'Slots')
+		$item = GetItemBySlot($bag, $slot)
+		If DllStructGetData($item, 'ID') = 0 Then Return $slot
+	Next
+	Return 0
 EndFunc
 
 
@@ -963,17 +969,41 @@ EndFunc
 
 ;~ Salvage all items from inventory
 Func SalvageAllItems()
-	If (CountSlots() < 1) Then
-		Warn('Not enough room in inventory to salvage items')
-		Return
+	Local $movedItem = Null
+	If (CountSlots(1, 4) < 1) Then
+		; There is no space in inventory, we need to store something in Xunlai to start the salvage
+		Local $xunlaiTemporarySlot = FindChestFirstEmptySlot()
+		$movedItem = GetItemBySlot(_Min(4, $BAG_NUMBER), 1)
+		MoveItem($movedItem, $xunlaiTemporarySlot[0], $xunlaiTemporarySlot[1])
 	EndIf
+
 	Info('Salvaging all items')
+	Local $trophiesItems[120]
+	Local $trophyIndex = 0
 	For $bagIndex = 1 To _Min(4, $BAG_NUMBER)
 		Debug('Salvaging bag' & $bagIndex)
 		Local $bagSize = DllStructGetData(GetBag($bagIndex), 'slots')
-		For $i = 1 To $bagSize
-			SalvageItemAt($bagIndex, $i)
+		For $slot = 1 To $bagSize
+			Local $item = GetItemBySlot($bagIndex, $slot)
+			If IsTrophy(DllStructGetData($item, 'ModelID')) Then
+				; Trophies should be salvaged at the end, because they create a lot of materials
+				$trophiesItems[$trophyIndex] = $bagIndex
+				$trophiesItems[$trophyIndex + 1] = $slot
+				$trophyIndex += 2
+			Else
+				SalvageItemAt($bagIndex, $slot)
+			EndIf
 		Next
+	Next
+
+	If $movedItem <> Null Then
+		Local $bagEmptySlot = FindFirstEmptySlot(1, _Min(4, $BAG_NUMBER))
+		MoveItem($movedItem, $bagEmptySlot[0], $bagEmptySlot[1])
+		SalvageItemAt($bagEmptySlot[0], $bagEmptySlot[1])
+	EndIf
+
+	For $i = 0 To $trophyIndex - 2
+		SalvageItemAt($trophiesItems[$i], $trophiesItems[$i + 1])
 	Next
 EndFunc
 
@@ -995,10 +1025,10 @@ Func SalvageItem($item)
 	For $i = 1 To DllStructGetData($item, 'Quantity')
 		$salvageKit = FindSalvageKitOrBuySome()
 		StartSalvageWithKit($item, $salvageKit)
-		Sleep(GetPing() + 100)
+		Sleep(GetPing() + 150)
 		If $rarity == $RARITY_gold Or $rarity == $RARITY_purple Then
 			ValidateSalvage()
-			Sleep(GetPing() + 100)
+			Sleep(GetPing() + 150)
 		EndIf
 	Next
 EndFunc
@@ -1065,7 +1095,7 @@ Func FindSalvageKitOrBuySome($basicSalvageKit = True)
 	Local $xunlaiTemporarySlot = 0
 	; There is no space in inventory, we need to store something in Xunlai to buy salvage kit
 	If CountSlots(1, 4) == 0 Then
-		Local $xunlaiTemporarySlot = FindChestFirstEmptySlot()
+		$xunlaiTemporarySlot = FindChestFirstEmptySlot()
 		MoveItem(GetItemBySlot(1, 1), $xunlaiTemporarySlot[0], $xunlaiTemporarySlot[1])
 	EndIf
 
@@ -1507,6 +1537,13 @@ Func IsOverLine($coefficientX, $coefficientY, $fixedCoefficient, $posX, $posY)
 	If $position > 0 Then
 		Return True
 	EndIf
+	Return False
+EndFunc
+
+
+;~ Is agent in range of coordinates
+Func IsAgentInRange($agent, $X, $Y, $range)
+	If ComputeDistance(DllStructGetData($agent, 'X'), DllStructGetData($agent, 'Y'), $X, $Y) < $range Then Return True
 	Return False
 EndFunc
 #EndRegion Utils
@@ -1953,6 +1990,7 @@ Func DefaultKillFoes($lootInFights = True)
 	Local $me = GetMyAgent()
 	Local $skillNumber = 1, $foesCount = 999, $target = GetNearestEnemyToAgent($me), $targetId = -1
 	GetAlmostInRangeOfAgent($target)
+	FanFlagHeroes()
 
 	While $groupIsAlive And $foesCount > 0
 		$target = GetNearestEnemyToAgent($me)
@@ -1983,6 +2021,7 @@ Func DefaultKillFoes($lootInFights = True)
 		$me = GetMyAgent()
 		$foesCount = CountFoesInRangeOfAgent($me, $RANGE_SPELLCAST)
 	WEnd
+	CancelAll()
 	RndSleep(1000)
 	PickUpItems()
 	PopContext('DefaultKillFoes')
@@ -2088,15 +2127,110 @@ EndFunc
 ;~ Returns True if the group is alive
 Func IsGroupAlive()
 	PushContext('IsGroupAlive')
-	Local $deadMembers = 0
-	For $i = 0 to GetHeroCount()
+	Local Static $heroesWithRez = FindHeroesWithRez()
+	For $i In $heroesWithRez
 		Local $heroID = GetHeroID($i)
-		If Not GetAgentExists($heroID) Or GetIsDead(GetAgentById($heroID)) Then
-			$deadMembers += 1
-		EndIf
+		If GetAgentExists($heroID) And Not GetIsDead(GetAgentById($heroID)) Then Return True
 	Next
 	PopContext('IsGroupAlive')
-	Return $deadMembers < 8
+	Return False
+EndFunc
+
+
+;~ Return an array of the player and the members of the group with a rez
+Func FindHeroesWithRez()
+	PushContext('FindHeroesWithRez')
+	Local $heroes[7]
+	Local $count = 0
+    For $heroNumber = 1 To GetHeroCount()
+        Local $heroID = GetHeroID($heroNumber)
+        For $skillSlot = 1 To 8
+            Local $skill = GetSkillbarSkillID($skillSlot, $heroNumber)
+            If IsRezSkill($skill) Then
+				$heroes[$count] = $heroNumber
+				$count += 1
+            EndIf
+        Next
+    Next
+	Local $result[$count + 1]
+	$result[0] = 0
+	For $i = 1 To $count
+		$result[$i] = $heroes[$i - 1]
+	Next
+	PopContext('FindHeroesWithRez')
+	Return $result
+EndFunc
+
+
+;~ Return true if the provided skill is a rez skill - signets excluded
+Func IsRezSkill($skill)
+	Local $By_Urals_Hammer			= 2217
+	Local $Junundu_Wail				= 1865
+	;Local $Resurrection_Signet		= 2
+	;Local $Sunspear_Rebirth_Signet	= 1816
+	Local $Eternal_Aura				= 2109
+	Local $We_Shall_Return			= 1592
+	Local $Signet_of_Return			= 1778
+	Local $Death_Pact_Signet		= 1481
+	Local $Flesh_of_My_Flesh		= 791
+	Local $Lively_Was_Naomei		= 1222
+	Local $Restoration				= 963
+	Local $Light_of_Dwayna			= 304
+	Local $Rebirth					= 306
+	Local $Renew_Life				= 1263
+	Local $Restore_Life				= 314
+	Local $Resurrect				= 305
+	Local $Resurrection_Chant		= 1128
+	Local $Unyielding_Aura			= 268
+	Local $Vengeance				= 315
+    Switch $skill
+        Case $By_Urals_Hammer, $Junundu_Wail, _ ;$Resurrection_Signet, $Sunspear_Rebirth_Signet _
+			$Eternal_Aura, _
+			$We_Shall_Return, $Signet_of_Return, _
+			$Death_Pact_Signet, $Flesh_of_My_Flesh, $Lively_Was_Naomei, $Restoration, _
+			$Light_of_Dwayna, $Rebirth, $Renew_Life, $Restore_Life, $Resurrect, $Resurrection_Chant, $Unyielding_Aura, $Vengeance
+            Return True
+    EndSwitch
+	Return False
+EndFunc
+
+
+;~ Take current character's position (AND orientation) to flag heroes in a fan position
+Func FanFlagHeroes()
+	Local $heroCount = GetHeroCount()
+	; Change your hero locations here
+	Switch $heroCount
+		Case 3
+			Local $heroFlagPositions[3] = [1, 2, 3]				; right, left, behind
+		Case 5
+			Local $heroFlagPositions[5] = [1, 2, 3, 4, 5]		; right, left, behind, behind right, behind left
+		Case 7
+			Local $heroFlagPositions[7] = [1, 2, 6, 3, 4, 5, 7]	; right, left, behind, behind right, behind left, way behind right, way behind left
+		Case Else
+			Local $heroFlagPositions[0] = []
+	EndSwitch
+
+	Local $me = GetMyAgent()
+	Local $X = DllStructGetData($me, 'X')
+	Local $Y = DllStructGetData($me, 'Y')
+	Local $rotationX = DllStructGetData($me, 'RotationCos')
+	Local $rotationY = DllStructGetData($me, 'RotationSin')
+	Local $distance = $RANGE_AREA + 50
+	
+	; To the right
+	If $heroCount > 0 Then CommandHero($heroFlagPositions[0], $X + $rotationY * $distance, $Y - $rotationX * $distance)
+	; To the left
+	If $heroCount > 1 Then CommandHero($heroFlagPositions[1], $X - $rotationY * $distance, $Y + $rotationX * $distance)
+	; Straight behind
+	If $heroCount > 2 Then CommandHero($heroFlagPositions[2], $X - $rotationX * $distance, $Y - $rotationY * $distance)
+	; To the right, behind
+	If $heroCount > 3 Then CommandHero($heroFlagPositions[3], $X + ($rotationY - $rotationX) * $distance, $Y - ($rotationX + $rotationY) * $distance)
+	; To the left, behind
+	If $heroCount > 4 Then CommandHero($heroFlagPositions[4], $X - ($rotationY + $rotationX) * $distance, $Y + ($rotationX - $rotationY) * $distance)
+	; To the right, way behind
+	If $heroCount > 5 Then CommandHero($heroFlagPositions[5], $X + ($rotationY / 2 - 2 * $rotationX) * $distance, $Y - (2 * $rotationY + $rotationX / 2) * $distance)
+	; To the left, way behind
+	If $heroCount > 6 Then CommandHero($heroFlagPositions[6], $X - ($rotationY / 2 + 2 * $rotationX) * $distance, $Y + ($rotationX / 2 - 2 * $rotationY) * $distance)
 EndFunc
 #EndRegion Map Clearing Utilities
 #EndRegion Actions

@@ -93,8 +93,11 @@ Func InventoryManagement()
 	EndIf
 	If GUICtrlRead($GUI_Checkbox_SalvageItems) == $GUI_CHECKED Then
 		If GetMapID() <> $ID_Eye_of_the_North Then DistrictTravel($ID_Eye_of_the_North, $DISTRICT_NAME)
-		If $BAG_NUMBER == 5 Then MoveItemsOutOfEquipmentBag()
 		SalvageAllItems()
+		If $BAG_NUMBER == 5 Then
+			MoveItemsOutOfEquipmentBag()
+			SalvageAllItems()
+		EndIf
 		;SalvageInscriptions()
 		;UpgradeWithSalvageInscriptions()
 		;SalvageMaterials()
@@ -328,7 +331,7 @@ Func StoreAllItemsData()
 			$InsertQuery &= (IsWeapon($item) ? GetItemReq($item) : 'NULL') & ', '
 			$InsertQuery &= (IsWeapon($item) ? GetItemAttribute($item) : 'NULL') & ", '"
 			$InsertQuery &= DllStructGetData($item, 'nameString') & "', '"
-			$InsertQuery &= (IsInscribable($item, 'nameString') ? 0 : 1) & "', '"
+			$InsertQuery &= (IsInscribable($item) ? 0 : 1) & "', '"
 			$InsertQuery &= GetModStruct($item) & "', "
 			$InsertQuery &= DllStructGetData($item, 'quantity') & ', '
 			$InsertQuery &= GetOrDefault(DllStructGetData($item, 'value'), 0) & ', '

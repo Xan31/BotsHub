@@ -826,7 +826,7 @@ Func ScanGWBasePatterns()
 	_('ScanTraderFunction:')
 	AddPatternToInjection('83FF10761468D2210000')
 	_('ScanTraderHook:')
-	AddPatternToInjection('50516A466A06')
+	AddPatternToInjection('50516A476A06')
 	_('ScanSleep:')
 	AddPatternToInjection('6A0057FF15D8408A006860EA0000')
 	_('ScanSalvageFunction:')
@@ -3275,7 +3275,7 @@ EndFunc
 
 ;~ Returns the nearest agent to an agent.
 Func GetNearestAgentToAgent($agent, $agentType = 0, $agentFilter = Null)
-	Local $nearestAgent, $nearestDistance = 100000000
+	Local $nearestAgent = Null, $nearestDistance = 100000000
 	Local $distance
 	Local $agentArray = GetAgentArray($agentType)
 	Local $agentID = DllStructGetData($agent, 'ID')

@@ -1025,10 +1025,10 @@ Func SalvageItem($item)
 	For $i = 1 To DllStructGetData($item, 'Quantity')
 		$salvageKit = FindSalvageKitOrBuySome()
 		StartSalvageWithKit($item, $salvageKit)
-		Sleep(GetPing() + 150)
+		Sleep(GetPing() + 200)
 		If $rarity == $RARITY_gold Or $rarity == $RARITY_purple Then
 			ValidateSalvage()
-			Sleep(GetPing() + 150)
+			Sleep(GetPing() + 200)
 		EndIf
 	Next
 EndFunc
@@ -1945,9 +1945,16 @@ Func SafeMoveAggroAndKill($x, $y, $s = '', $range = 1450)
 EndFunc
 
 
+;~ Version to flag heroes before fights
+;~ Better against heavy AoE - dangerous when flags can end up in a non accessible spot
+Func FlagMoveAggroAndKill($x, $y, $s = '', $range = 1450)
+	Return MoveAggroAndKill($x, $y, $s, $range, $range - 100, False, True)
+EndFunc
+
+
 ;~ Clear a zone around the coordinates provided
 ;~ Credits to Shiva for auto-attack improvement
-Func MoveAggroAndKill($x, $y, $s = '', $range = 1450, $chestOpenRange = $RANGE_SPIRIT, $lootInFights = True)
+Func MoveAggroAndKill($x, $y, $s = '', $range = 1450, $chestOpenRange = $RANGE_SPIRIT, $lootInFights = True, $flagHeroesOnFight = False)
 	PushContext('MoveAggroAndKill')
 	If Not IsGroupAlive() And PopContext('MoveAggroAndKill') Then Return True
 	If $s <> '' Then Info($s)
@@ -1967,7 +1974,7 @@ Func MoveAggroAndKill($x, $y, $s = '', $range = 1450, $chestOpenRange = $RANGE_S
 		$oldCoordsY = $coordsY
 		$me = GetMyAgent()
 		$nearestEnemy = GetNearestEnemyToAgent($me)
-		If GetDistance($me, $nearestEnemy) < $range And DllStructGetData($nearestEnemy, 'ID') <> 0 Then DefaultKillFoes($lootInFights)
+		If GetDistance($me, $nearestEnemy) < $range And DllStructGetData($nearestEnemy, 'ID') <> 0 Then DefaultKillFoes($lootInFights, $flagHeroesOnFight)
 		$coordsX = DllStructGetData($me, 'X')
 		$coordsY = DllStructGetData($me, 'Y')
 		If $oldCoordsX = $coordsX And $oldCoordsY = $coordsY Then
@@ -1985,12 +1992,12 @@ EndFunc
 
 
 ;~ Kill foes by casting skills from 1 to 8
-Func DefaultKillFoes($lootInFights = True)
+Func DefaultKillFoes($lootInFights = True, $flagHeroesOnFight = False)
 	PushContext('DefaultKillFoes')
 	Local $me = GetMyAgent()
 	Local $skillNumber = 1, $foesCount = 999, $target = GetNearestEnemyToAgent($me), $targetId = -1
 	GetAlmostInRangeOfAgent($target)
-	FanFlagHeroes()
+	If $flagHeroesOnFight Then FanFlagHeroes()
 
 	While $groupIsAlive And $foesCount > 0
 		$target = GetNearestEnemyToAgent($me)
@@ -2021,7 +2028,7 @@ Func DefaultKillFoes($lootInFights = True)
 		$me = GetMyAgent()
 		$foesCount = CountFoesInRangeOfAgent($me, $RANGE_SPELLCAST)
 	WEnd
-	CancelAllHeroes()
+	If $flagHeroesOnFight Then CancelAllHeroes()
 	RndSleep(1000)
 	PickUpItems()
 	PopContext('DefaultKillFoes')
@@ -2196,7 +2203,7 @@ EndFunc
 
 
 ;~ Take current character's position (AND orientation) to flag heroes in a fan position
-Func FanFlagHeroes()
+Func FanFlagHeroes($range = $RANGE_AREA)
 	Local $heroCount = GetHeroCount()
 	; Change your hero locations here
 	Switch $heroCount
@@ -2215,8 +2222,17 @@ Func FanFlagHeroes()
 	Local $Y = DllStructGetData($me, 'Y')
 	Local $rotationX = DllStructGetData($me, 'RotationCos')
 	Local $rotationY = DllStructGetData($me, 'RotationSin')
-	Local $distance = $RANGE_AREA + 50
-	
+	Local $distance = $range + 10
+
+	Local $agent = GetNearestEnemyToAgent($me)
+	If $agent <> Null Then
+		$rotationX = DllStructGetData($agent, 'X') - $X
+		$rotationY = DllStructGetData($agent, 'Y') - $Y
+		Local $distanceToFoe = Sqrt($rotationX ^ 2 + $rotationY ^ 2)
+		$rotationX = $rotationX / $distanceToFoe
+		$rotationY = $rotationY / $distanceToFoe
+	EndIf
+
 	; To the right
 	If $heroCount > 0 Then CommandHero($heroFlagPositions[0], $X + $rotationY * $distance, $Y - $rotationX * $distance)
 	; To the left

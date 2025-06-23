@@ -143,7 +143,7 @@ Global $GUI_Group_Titles, _
 Global $GUI_Group_GlobalOptions, _
 		$GUI_Checkbox_LoopRuns, $GUI_Checkbox_HM, $GUI_Checkbox_StoreUnidentifiedGoldItems, $GUI_Checkbox_SortItems, $GUI_Checkbox_CollectData, $GUI_Checkbox_IdentifyGoldItems, _
 		$GUI_Checkbox_SalvageItems, $GUI_Checkbox_SellItems, $GUI_Checkbox_SellMaterials, $GUI_Checkbox_StoreTheRest, $GUI_Checkbox_StoreGold, $GUI_Checkbox_BuyEctoplasm
-Global $GUI_Group_ConsumableOptions, $GUI_Checkbox_UseConsumables
+Global $GUI_Group_ConsumableOptions, $GUI_Checkbox_UseConsumables, $GUI_Checkbox_FarmMaterials
 Global $GUI_Group_BaseLootOptions, _
 		$GUI_Checkbox_LootEverything, $GUI_Checkbox_LootNothing, $GUI_Checkbox_LootRareMaterials, $GUI_Checkbox_LootBasicMaterials, $GUI_Checkbox_LootKeys, $GUI_Checkbox_LootSalvageItems, _
 		$GUI_Checkbox_LootTomes, $GUI_Checkbox_LootDyes, $GUI_Checkbox_LootScrolls
@@ -279,6 +279,7 @@ Func createGUI()
 	$GUI_Combo_DistrictChoice = GUICtrlCreateCombo('Random', 400, 122, 100, 20)
 	GUICtrlSetData($GUI_Combo_DistrictChoice, $AVAILABLE_DISTRICTS, 'Random')
 	GUICtrlSetOnEvent($GUI_Combo_DistrictChoice, 'GuiButtonHandler')
+	$GUI_Checkbox_FarmMaterials = GUICtrlCreateCheckbox('Farm materials', 315, 154, 256, 20)
 	$GUI_Input_DynamicExecution = GUICtrlCreateInput('', 315, 364, 156, 20)
 	$GUI_Button_DynamicExecution = GUICtrlCreateButton('Run', 490, 364, 75, 20)
 	GUICtrlSetBkColor($GUI_Button_DynamicExecution, $GUI_BLUE_COLOR)
@@ -691,6 +692,10 @@ Func BotHubLoop()
 		Sleep(1000)
 
 		If ($STATUS == 'RUNNING') Then
+			If GUICtrlRead($GUI_Checkbox_FarmMaterials) = $GUI_CHECKED Then
+				Local $resetRequired = PassiveInventoryManagement()
+				If $resetRequired Then ResetBotsSetups()
+			EndIf
 			Local $Farm = GUICtrlRead($GUI_Combo_FarmChoice)
 			Local $success = RunFarmLoop($Farm)
 			If ($success == 2 Or GUICtrlRead($GUI_Checkbox_LoopRuns) == $GUI_UNCHECKED) Then
@@ -699,7 +704,7 @@ Func BotHubLoop()
 				; During pickup, items will be moved to equipment bag (if used) when first 3 bags are full
 				; So bag 5 will always fill before 4 - hence we can count items up to bag 4
 				If (CountSlots(1, _Min($BAG_NUMBER, 4)) <= $INVENTORY_SPACE_NEEDED) Then
-					InventoryManagement()
+					ActiveInventoryManagement()
 					ResetBotsSetups()
 				EndIf
 				If (CountSlots(1, $BAG_NUMBER) <= $INVENTORY_SPACE_NEEDED) Then
@@ -740,77 +745,77 @@ Func RunFarmLoop($Farm)
 			GUICtrlSetBkColor($GUI_StartButton, $GUI_BLUE_COLOR)
 		Case 'Corsairs'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  CorsairsFarm($STATUS)
+			$result = CorsairsFarm($STATUS)
 		Case 'Dragon Moss'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  DragonMossFarm($STATUS)
+			$result = DragonMossFarm($STATUS)
 		Case 'Eden Iris'
 			$INVENTORY_SPACE_NEEDED = 2
-			$result =  EdenIrisFarm($STATUS)
+			$result = EdenIrisFarm($STATUS)
 		Case 'Feathers'
 			$INVENTORY_SPACE_NEEDED = 10
-			$result =  FeathersFarm($STATUS)
+			$result = FeathersFarm($STATUS)
 		Case 'Follow'
 			$INVENTORY_SPACE_NEEDED = 15
-			$result =  FollowerFarm($STATUS)
+			$result = FollowerFarm($STATUS)
 		Case 'FoW'
 			$INVENTORY_SPACE_NEEDED = 30
-			$result =  FoWFarm($STATUS)
+			$result = FoWFarm($STATUS)
 		Case 'Froggy'
 			$INVENTORY_SPACE_NEEDED = 10
-			$result =  FroggyFarm($STATUS)
+			$result = FroggyFarm($STATUS)
 		Case 'Gemstone'
 			$INVENTORY_SPACE_NEEDED = 10
 			$result = GemstoneFarm($STATUS)
 		Case 'Jade Brotherhood'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  JadeBrotherhoodFarm($STATUS)
+			$result = JadeBrotherhoodFarm($STATUS)
 		Case 'Kournans'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  KournansFarm($STATUS)
+			$result = KournansFarm($STATUS)
 		Case 'Kurzick'
 			$INVENTORY_SPACE_NEEDED = 15
-			$result =  KurzickFactionFarm($STATUS)
+			$result = KurzickFactionFarm($STATUS)
 		Case 'Lightbringer'
 			$INVENTORY_SPACE_NEEDED = 10
-			$result =  LightbringerFarm($STATUS)
+			$result = LightbringerFarm($STATUS)
 		Case 'Luxon'
 			$INVENTORY_SPACE_NEEDED = 10
-			$result =  LuxonFactionFarm($STATUS)
+			$result = LuxonFactionFarm($STATUS)
 		Case 'Mantids'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  MantidsFarm($STATUS)
+			$result = MantidsFarm($STATUS)
 		Case 'Ministerial Commendations'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  MinisterialCommendationsFarm($STATUS)
+			$result = MinisterialCommendationsFarm($STATUS)
 		Case 'OmniFarm'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  OmniFarm($STATUS)
+			$result = OmniFarm($STATUS)
 		Case 'Pongmei'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  PongmeiChestFarm($STATUS)
+			$result = PongmeiChestFarm($STATUS)
 		Case 'Raptors'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  RaptorFarm($STATUS)
+			$result = RaptorFarm($STATUS)
 		Case 'SoO'
 			$INVENTORY_SPACE_NEEDED = 15
-			$result =  SoOFarm($STATUS)
+			$result = SoOFarm($STATUS)
 		Case 'SpiritSlaves'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  SpiritSlavesFarm($STATUS)
+			$result = SpiritSlavesFarm($STATUS)
 		Case 'Tasca'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  TascaChestFarm($STATUS)
+			$result = TascaChestFarm($STATUS)
 		Case 'Vaettirs'
 			$INVENTORY_SPACE_NEEDED = 5
-			$result =  VaettirFarm($STATUS)
+			$result = VaettirFarm($STATUS)
 		Case 'Voltaic'
 			$INVENTORY_SPACE_NEEDED = 10
-			$result =  VoltaicFarm($STATUS)
+			$result = VoltaicFarm($STATUS)
 		Case 'Storage'
 			$INVENTORY_SPACE_NEEDED = 5
 			ResetBotsSetups()
-			$result =  ManageInventory($STATUS)
+			$result = ManageInventory($STATUS)
 		Case 'Dynamic'
 			Info('Dynamic execution')
 		Case 'Tests'
@@ -821,7 +826,9 @@ Func RunFarmLoop($Farm)
 	AdlibUnRegister('UpdateProgressBar')
 	GUICtrlSetData($GUI_FarmProgress, 100)
 	UpdateStats($result, $timer)
+	ClearMemory()
 	PopContext('RunFarmLoop')
+	; _PurgeHook()
 	Return $result
 EndFunc
 #EndRegion Main loops
@@ -1032,6 +1039,7 @@ Func WriteConfigToJson()
 	_JSON_addChangeDelete($jsonObject, 'run.store_gold', GUICtrlRead($GUI_Checkbox_StoreGold) == 1)
 	_JSON_addChangeDelete($jsonObject, 'run.district', GUICtrlRead($GUI_Combo_DistrictChoice))
 	_JSON_addChangeDelete($jsonObject, 'run.bag_number', Number(GUICtrlRead($GUI_Input_BagNumber)))
+	_JSON_addChangeDelete($jsonObject, 'run.farm_materials', Number(GUICtrlRead($GUI_Checkbox_FarmMaterials)))
 	_JSON_addChangeDelete($jsonObject, 'consumables.consume', GUICtrlRead($GUI_Checkbox_UseConsumables) == 1)
 	_JSON_addChangeDelete($jsonObject, 'loot.everything', GUICtrlRead($GUI_Checkbox_LootEverything) == 1)
 	_JSON_addChangeDelete($jsonObject, 'loot.nothing', GUICtrlRead($GUI_Checkbox_LootNothing) == 1)
@@ -1086,6 +1094,7 @@ Func ReadConfigFromJson($jsonString)
 	$bagNumber = _Min($bagNumber, 5)
 	$BAG_NUMBER = $bagNumber
 	GUICtrlSetData($GUI_Input_BagNumber, $bagNumber)
+	GUICtrlSetState($GUI_Checkbox_FarmMaterials, _JSON_Get($jsonObject, 'run.farm_materials') ? $GUI_CHECKED : $GUI_UNCHECKED)
 	GUICtrlSetState($GUI_Checkbox_UseConsumables, _JSON_Get($jsonObject, 'consumables.consume') ? $GUI_CHECKED : $GUI_UNCHECKED)
 	GUICtrlSetState($GUI_Checkbox_LootEverything, _JSON_Get($jsonObject, 'loot.everything') ? $GUI_CHECKED : $GUI_UNCHECKED)
 	GUICtrlSetState($GUI_Checkbox_LootNothing, _JSON_Get($jsonObject, 'loot.nothing') ? $GUI_CHECKED : $GUI_UNCHECKED)

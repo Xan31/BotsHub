@@ -58,6 +58,7 @@
 #include 'src/Farm-Follower.au3'
 #include 'src/Farm-FoW.au3'
 #include 'src/Farm-Froggy.au3'
+#include 'src/Farm-Gemstone.au3'
 #include 'src/Farm-JadeBrotherhood.au3'
 #include 'src/Farm-Kournans.au3'
 #include 'src/Farm-Kurzick.au3'
@@ -67,12 +68,11 @@
 #include 'src/Farm-MinisterialCommendations.au3'
 #include 'src/Farm-Pongmei.au3'
 #include 'src/Farm-Raptors.au3'
-#include 'src/Farm-SpiritSlaves.au3'
 #include 'src/Farm-SoO.au3'
+#include 'src/Farm-SpiritSlaves.au3'
 #include 'src/Farm-Tasca.au3'
 #include 'src/Farm-Vaettirs.au3'
 #include 'src/Farm-Voltaic.au3'
-#include 'src/Farm-Gemstone.au3'
 #include 'lib/JSON.au3'
 #EndRegion Includes
 
@@ -693,7 +693,11 @@ Func BotHubLoop()
 		Sleep(1000)
 
 		If ($STATUS == 'RUNNING') Then
-			If GUICtrlRead($GUI_Checkbox_DisableRendering) == $GUI_CHECKED And GetIsRendering() Then DisableRendering()
+			If GUICtrlRead($GUI_Checkbox_DisableRendering) == $GUI_CHECKED Then
+				If GetIsRendering() Then DisableRendering()
+			Else
+				If Not GetIsRendering() Then EnableRendering()
+			EndIf
 			If GUICtrlRead($GUI_Checkbox_FarmMaterials) = $GUI_CHECKED Then
 				Local $resetRequired = PassiveInventoryManagement()
 				If $resetRequired Then ResetBotsSetups()
@@ -720,7 +724,7 @@ Func BotHubLoop()
 		If ($STATUS == 'WILL_PAUSE') Then
 			Warn('Paused.')
 			$STATUS = 'PAUSED'
-			If GUICtrlRead($GUI_Checkbox_DisableRendering) == $GUI_CHECKED And Not GetIsRendering() Then EnableRendering()
+			If Not GetIsRendering() Then EnableRendering()
 			GUICtrlSetData($GUI_StartButton, 'Start')
 			; Enabling changing account is non trivial
 			;GUICtrlSetState($GUI_Combo_CharacterChoice, $GUI_Enable)

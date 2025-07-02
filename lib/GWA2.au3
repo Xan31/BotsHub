@@ -257,7 +257,7 @@ Func MemoryReadPtr($address, $offset, $type = 'dword')
 		For $i = 0 To $ptrCount
 			$address += $offset[$i]
 
-			SafeDllCall11($kernelHandle, 'int', 'VirtualQueryEx', 'int', GetProcessHandle(), 'int', $address, 'ptr', DllStructGetPtr($memoryInfo), 'int', DllStructGetSize($memoryInfo))
+			SafeDllCall11($kernelHandle, 'int', 'VirtualQueryEx', 'int', $processHandle, 'int', $address, 'ptr', DllStructGetPtr($memoryInfo), 'int', DllStructGetSize($memoryInfo))
 			If DllStructGetData($memoryInfo, 'State') <> 0x1000 Then ExitLoop 2
 
 			SafeDllCall13($kernelHandle, 'int', 'ReadProcessMemory', 'int', $processHandle, 'int', $address, 'ptr', DllStructGetPtr($buffer), 'int', DllStructGetSize($buffer), 'int', 0)
@@ -265,7 +265,7 @@ Func MemoryReadPtr($address, $offset, $type = 'dword')
 			If $address == 0 Then ExitLoop 2
 		Next
 		$address += $offset[$ptrCount + 1]
-		SafeDllCall11($kernelHandle, 'int', 'VirtualQueryEx', 'int', GetProcessHandle(), 'int', $address, 'ptr', DllStructGetPtr($memoryInfo), 'int', DllStructGetSize($memoryInfo))
+		SafeDllCall11($kernelHandle, 'int', 'VirtualQueryEx', 'int', $processHandle, 'int', $address, 'ptr', DllStructGetPtr($memoryInfo), 'int', DllStructGetSize($memoryInfo))
 		If DllStructGetData($memoryInfo, 'State') <> 0x1000 Then ExitLoop
 
 		$buffer = SafeDllStructCreate($type)
@@ -726,14 +726,14 @@ EndFunc
 
 ;~ Get the address provided to a call (ie: strips the E8 instruction, and sums current call address with the obtained offset)
 Func GetCallTargetAddress($address)
-    Local $offset = MemoryRead($address + 0x01, 'dword')
-    If $offset > 0x7FFFFFFF Then
+	Local $offset = MemoryRead($address + 0x01, 'dword')
+	If $offset > 0x7FFFFFFF Then
 		Warn('Offset is larger than 0x7FFFFFFF, adjusting for 64-bit address space.')
-        $offset -= 0x100000000
-    EndIf
-    Local $targetAddress = $address + 5 + $offset
+		$offset -= 0x100000000
+	EndIf
+	Local $targetAddress = $address + 5 + $offset
 
-    Return $targetAddress
+	Return $targetAddress
 EndFunc
 
 
@@ -1010,6 +1010,8 @@ EndFunc
 Func ScanForCharname($processHandle)
 	PushContext('ScanForCharname')
 	Local $scannedMemory = ScanMemoryForPattern($processHandle, BinaryToString('0x6A14FF751868'))
+	; If you have issues finding your character name, tries this line instead of the previous one :
+	;Local $scannedMemory = ScanMemoryForPattern($processHandle, BinaryToString('0x00E20878'))
 	Local $baseAddress = $scannedMemory[1]
 	Local $matchOffset = $scannedMemory[2]
 	Local $tmpAddress = $baseAddress + $matchOffset - 1
@@ -5411,11 +5413,11 @@ EndFunc
 
 ;~ Create UI commands like EnterMission
 Func CreateUICommands()
-    _('CommandEnterMission:')
-    _('push 1')
-    _('call EnterMissionFunction')
-    _('add esp,4')
-    _('ljmp CommandReturn')
+	_('CommandEnterMission:')
+	_('push 1')
+	_('call EnterMissionFunction')
+	_('add esp,4')
+	_('ljmp CommandReturn')
 EndFunc
 #EndRegion Modification
 

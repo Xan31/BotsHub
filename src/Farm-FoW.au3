@@ -29,6 +29,7 @@ Global Const $FoWFarmInformations = 'For best results, dont cheap out on heroes'
 	& 'XXmn average in NM' & @CRLF _
 	& 'YYmn  average in HM with consets (automatically used if HM is on)' & @CRLF _
 	& 'If you add a summon to this farm, do it so that it despawned once doing green forest'
+Global Const $FOW_FARM_DURATION = 75 * 60 * 1000
 
 Global $FOW_FARM_SETUP = False
 Global $FoWDeathsCount = 0
@@ -54,11 +55,11 @@ Func FoWFarm($STATUS)
 	SendChat('/kneel', '')
 	RndSleep(3000)
 	GoToNPC(GetNearestNPCToCoords(-2500, 18700))
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x85)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x86)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	WaitMapLoading($ID_Fissure_of_Woe)
 
 	If $STATUS <> 'RUNNING' Then Return 2
@@ -87,12 +88,17 @@ Func FoWFarmLoop()
 	If IsHardmodeEnabled() Then UseConset()
 
 	If TowerOfCourage() Then Return 1
+	; Fix : if unholy texts are not picked up, move to different place, and retry, until it works
 	If TheGreatBattleField() Then Return 1
 	If TheTempleOfWar() Then Return 1
 	If TheSpiderCave_and_FissureShore() Then Return 1
+	; Fix: blocking point before the boss, either try to loot something unreachable or to open an unreachable chest
 	If LakeOfFire() Then Return 1
 	If TowerOfStrengh() Then Return 1
+	; Fix : pathing should be updated to avoid over aggro
 	If BurningForest() Then Return 1
+	; Fix : pathing incorrect making you potentially clear in front of Wailing Lord without the flags
+	; Also makes you take griffons before clearing the path for them
 	If ForestOfTheWailingLord() Then Return 1
 	If GriffonRun() Then Return 1
 	If TempleLoot() Then Return 1
@@ -118,32 +124,44 @@ Func TowerOfCourage()
 	Info('Pre-clearing east of tower')
 	MoveAggroAndKill(-14000, -1000, '1')
 	MoveAggroAndKill(-15000, 0, '2')
-	MoveAggroAndKill(-14000, -3000, '4')
+	MoveAggroAndKill(-14000, -3000, '3')
+	Info('Waiting for door to open')
+	Local $waitCount = 0
 	Local $me = GetMyAgent()
 	While Not GetIsDead() And ComputeDistance(DllStructGetData($me, 'X'), DllStructGetData($me, 'Y'), -15000, -2000) > $RANGE_ADJACENT
+		If $waitCount == 20 Then
+			Info('Rastigan is not moving, lets nudge him')
+			MoveAggroAndKill(-14000, -1000)
+			MoveAggroAndKill(-15000, 0)
+			MoveAggroAndKill(-18000, 0)
+			MoveAggroAndKill(-15000, 0)
+			MoveAggroAndKill(-14000, -1000)
+			$waitCount = 0
+		EndIf
 		MoveTo(-15000, -2000)
 		Sleep(3000)
+		$waitCount += 1
 		$me = GetMyAgent()
 	WEnd
-	MoveAggroAndKill(-15500, -2000, '5')
+	MoveAggroAndKill(-15500, -2000)
 
 	Info('Getting Tower of Courage quest and reward')
 	MoveTo(-15700, -1700)
 	Local $npc = GetNearestNPCToCoords(-15750, -1700)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80D401)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80D407)
-	RndSleep(GetPing() + 250)	
-	
+	RndSleep(GetPing() + 750)
+
 	Info('Getting The Wailing Lord quest')
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CC01)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 EndFunc
 
 
@@ -159,10 +177,10 @@ Func TheGreatBattleField()
 	MoveTo(-7326, 11892)
 	Local $npc = GetNearestNPCToCoords(-7400, 11950)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CB01)
-	RndSleep(GetPing() + 250)
-	
+	RndSleep(GetPing() + 750)
+
 	Info('Getting Unholy Texts')
 	FlagMoveAggroAndKill(-1800, 14400, '1')
 	FlagMoveAggroAndKill(1500, 16600, '2')
@@ -177,16 +195,16 @@ Func TheGreatBattleField()
 	Info('Getting the Army of Darkness reward')
 	MoveTo(-7300, 11900)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CB07)
-	RndSleep(GetPing() + 250)
-	
+	RndSleep(GetPing() + 750)
+
 	Info('Getting the Eternal Forgemaster quest')
 	MoveTo(-7400, 11700)
 	GoToNPC(GetNearestNPCToCoords(-7450, 11700))
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80D101)
-	RndSleep(GetPing() + 250)	
+	RndSleep(GetPing() + 750)
 
 	Info('Heading to Forge')
 	FlagMoveAggroAndKill(-4400, 10900, '1')
@@ -219,50 +237,50 @@ Func TheTempleOfWar()
 	MoveTo(1850, -150)
 	Local $npc = GetNearestNPCToCoords(1850, -200)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80D107)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 
 	Info('Getting the Defend the Temple of War quest')
 	MoveTo(1850, -150)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CA01)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 
 	Info('Waiting the defense, feeling cute, might optimise later')
 	Info('Sleeping for 480s')
 	Sleep(480000)
-	
+
 	Info('Getting the Defend the Temple of War quest reward')
 	MoveTo(1850, -150)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CA07)
-	RndSleep(GetPing() + 250)	
-	
+	RndSleep(GetPing() + 750)
+
 	Info('Getting the Restore the Temple of War quest')
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CF03)
-	RndSleep(GetPing() + 250)	
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CF01)
-	RndSleep(GetPing() + 250)	
+	RndSleep(GetPing() + 750)
 
 	Info('Getting the Khobay the Betrayer quest')
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80E003)
-	RndSleep(GetPing() + 250)	
+	RndSleep(GetPing() + 750)
 	Dialog(0x80E001)
-	RndSleep(GetPing() + 250)		
+	RndSleep(GetPing() + 750)
 
 	Info('Getting the Tower of Strength quest')
 	MoveTo(200, -1900)
 	GoToNPC(GetNearestNPCToCoords(150, -1950))
-	RndSleep(GetPing() + 250)	
+	RndSleep(GetPing() + 750)
 	Dialog(0x80D301)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 EndFunc
 
 
@@ -275,49 +293,35 @@ Func TheSpiderCave_and_FissureShore()
 	MoveAggroAndKill(2800, -9700, '3')
 	MoveAggroAndKill(1800, -12000, '4')
 	MoveAggroAndKill(1100, -13500, '5')
-	
+
 	Info('Getting The Hunt quest')
 	MoveTo(3000, -14800)
 	GoToNPC(GetNearestNPCToCoords(3000, -14850))
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80D001)
-	RndSleep(GetPing() + 250)	
-	
+	RndSleep(GetPing() + 750)
+
 	KillShardWolf()
 
 	Info('Clearing cave')
 	MoveAggroAndKill(1400, -11600, '1')
 	MoveAggroAndKill(-900, -9400, '2')
-	Info('Sleeping for 20s')
-	Sleep(20000)
 	MoveAggroAndKill(-2500, -8500, '3')
-	Info('Sleeping for 20s')
-	Sleep(20000)
 	MoveAggroAndKill(-4000, -9400, '4')
-	Info('Sleeping for 20s')
-	Sleep(20000)
 	MoveAggroAndKill(-6100, -11400, '5')
-	Info('Sleeping for 20s')
-	Sleep(20000)
 	MoveAggroAndKill(-7800, -13400, '6')
-	Info('Sleeping for 20s')
-	Sleep(20000)
 	MoveAggroAndKill(-8400, -15800, '7')
-	Info('Sleeping for 20s')
-	Sleep(20000)
-	MoveAggroAndKill(-8600, -17300, '5')
-	Info('Sleeping for 60s')
-	Sleep(60000)
-	
+	MoveAggroAndKill(-8600, -17300, '8')
+
 	MoveTo(-10000, -18500)
 	MoveTo(-12900, -18000)
 
 	KillShardWolf()
-	
+
 	Info('Going back')
 	MoveAggroAndKill(-8800, -18200, '1')
 	MoveAggroAndKill(-8500, -16200, '2')
-	
+
 	MoveTo(-6700, -11750)
 	MoveTo(-1600, -8750)
 	MoveTo(1000, -11200)
@@ -329,35 +333,37 @@ Func LakeOfFire()
 	MoveAggroAndKill(4500, -9800, '1')
 	MoveAggroAndKill(7350, -11250, '2')
 	MoveAggroAndKill(9600, -8500, '3')
-	MoveAggroAndKill(20500, -8100, '4')
-	MoveAggroAndKill(20700, -12400, '5')
-	MoveAggroAndKill(18300, -14000, '6')
-	MoveAggroAndKill(19500, -15000, '7')
+	MoveAggroAndKill(15250, -9500, '4')
+	MoveAggroAndKill(20500, -8100, '5')
+	MoveAggroAndKill(20500, -12400, '6', $RANGE_EARSHOT)
+	MoveAggroAndKill(18300, -14000, '7', $RANGE_EARSHOT)
+	MoveAggroAndKill(19500, -15000, '8', $RANGE_EARSHOT)
 EndFunc
 
 
 Func TowerOfStrengh()
 	Info('Clearing area of Tower of Strengh')
-	MoveTo(18250, -14000)
-	MoveTo(20700, -12400)
+	MoveTo(18300, -14000)
+	MoveTo(20500, -12400)
 	MoveTo(20500, -8100)
+	MoveTo(15250, -9500)
 	MoveTo(9600, -8500)
-	MoveAggroAndKill(11500, -4600, '3')
-	MoveAggroAndKill(15000, -3100, '4')
-	MoveAggroAndKill(15800, -300, '5')
-	
+	MoveAggroAndKill(11500, -4600, '1')
+	MoveAggroAndKill(15000, -3100, '2')
+	MoveAggroAndKill(15800, -300, '3')
+
 	Info('Going to trigger pnj')
 	MoveAggroAndKill(15300, -1400, '1')
 	MoveAggroAndKill(10300, -5900, '2')
 	MoveAggroAndKill(6500, -11200, '3')
 	MoveAggroAndKill(1600, -7200, '4')
-	
+
 	Info('And back to tower')
 	MoveAggroAndKill(6500, -12000, '1')
 	MoveAggroAndKill(10300, -5900, '2')
 	MoveAggroAndKill(15400, -1400, '3')
 	MoveAggroAndKill(16750, -1750, '4')
-	MoveAggroAndKill(12300, 250, '4')
+	MoveAggroAndKill(12300, 250, '5')
 	KillShardWolf()
 	; Entering the tower garantees the npc arrived
 	Local $me = GetMyAgent()
@@ -375,32 +381,36 @@ Func BurningForest()
 	MoveAggroAndKill(17400, 3300, '2')
 	MoveAggroAndKill(14100, 4000, '3')
 	MoveAggroAndKill(12100, 6750, '4')
-	
+
 	Info('Getting the Slaves of Menzies quest')
 	MoveTo(12000, 6600)
 	Local $npc = GetNearestNPCToCoords(12050, 6500)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CE01)
-	RndSleep(GetPing() + 250)		
-	
+	RndSleep(GetPing() + 750)
+
 	Info('Clearing Burning Forest')
-	FlagMoveAggroAndKill(15000, 9000, '1')
-	FlagMoveAggroAndKill(17500, 9500, '1')
-	FlagMoveAggroAndKill(20000, 10000, '2')
-	FlagMoveAggroAndKill(20000, 12000, '4')
-	FlagMoveAggroAndKill(22500, 14000, '5')
+	FlagMoveAggroAndKill(12800, 7900, '1')
+	FlagMoveAggroAndKill(14800, 8500, '2')
+	FlagMoveAggroAndKill(16500, 9100, '3')
+	FlagMoveAggroAndKill(19000, 8400, '4')
+	FlagMoveAggroAndKill(20800, 8500, '5')
+	FlagMoveAggroAndKill(21700, 12600, '6')
+	FlagMoveAggroAndKill(22000, 15000, '7')
+	FlagMoveAggroAndKill(19500, 14500, '8')
+	FlagMoveAggroAndKill(17400, 13500, '9')
 	KillShardWolf()
-	FlagMoveAggroAndKill(22500, 16000, '6')
-	FlagMoveAggroAndKill(21000, 15000, '7')
-	FlagMoveAggroAndKill(16000, 10000, '8')
+	FlagMoveAggroAndKill(16200, 11000, '10')
+	FlagMoveAggroAndKill(15000, 92000, '11')
+	FlagMoveAggroAndKill(13000, 7700, '12')
 
 	Info('Getting the Slaves of Menzies quest reward')
 	MoveTo(12000, 6600)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CE07)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 
 	Info('Heading to Forest of the Wailing Lords')
 	MoveAggroAndKill(9200, 12500, '1')
@@ -412,17 +422,22 @@ EndFunc
 
 Func ForestOfTheWailingLord()
 	Info('Clearing forest')
+	; Seems to be a block at those coordinates
 	MoveAggroAndKill(-17500, 9750, '1')
 	MoveAggroAndKill(-20200, 9500, '2')
-	MoveAggroAndKill(-20750, 12200, '3')
-	MoveAggroAndKill(-18200, 15000, '4')
-	MoveAggroAndKill(-15900, 13100, '5')
+	MoveAggroAndKill(-22000, 11000, '3')
+	MoveAggroAndKill(-20000, 13000, '4', $RANGE_SPELLCAST + 200)
+	MoveAggroAndKill(-19000, 14500, '5', $RANGE_SPELLCAST + 200)
+	MoveAggroAndKill(-18000, 15000, '6')
+	MoveAggroAndKill(-16000, 13500, '7')
 
 	KillShardWolf()
 
-	; Safer move
-	MoveAggroAndKill(-20200, 14000, '6', $RANGE_SPELLCAST)
-	
+	; Safer moves
+	MoveAggroAndKill(-20000, 13000, '8', $RANGE_SPELLCAST + 200)
+	MoveAggroAndKill(-18000, 11000, '9', $RANGE_SPELLCAST + 200)
+	MoveAggroAndKill(-20200, 14000, '10', $RANGE_SPELLCAST + 200)
+
 	Info('Safely pulling')
 	CommandHero(1, -20200, 13600)
 	CommandHero(2, -19900, 14000)
@@ -431,7 +446,7 @@ Func ForestOfTheWailingLord()
 	CommandHero(5, -20000, 13800)
 	CommandHero(6, -19750, 13800)
 	CommandHero(7, -19900, 13600)
-	
+
 	Local $questState = 1
 	While Not GetIsDead() And $questState <> 19
 		MoveTo(-21000, 14600)
@@ -445,9 +460,9 @@ Func ForestOfTheWailingLord()
 	Info('Getting the Gift of Griffons quest')
 	MoveTo(-21500, 15000)
 	GoToNPC(GetNearestNPCToCoords(-21600, 15050))
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CD01)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 EndFunc
 
 
@@ -461,7 +476,7 @@ Func GriffonRun()
 	MoveAggroAndKill(-18000, -3500, '6')
 
 	KillShardWolf()
-	
+
 	Info('Grabbing griffons')
 	MoveAggroAndKill(-13750, -2750, '1')
 	MoveAggroAndKill(-9500, -6000, '2')
@@ -485,14 +500,15 @@ Func GriffonRun()
 	Info('Getting the Wailing Lord and the Gift of Griffons quests rewards')
 	Local $npc = GetNearestNPCToCoords(-15750, -1700)
 	GoToNPC($npc)
-	Exit
-	RndSleep(GetPing() + 250)
-	;Dialog(0x80D401)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
+	Dialog(0x80CC06)
+	RndSleep(GetPing() + 750)
+	Dialog(0x80CC07)
+	RndSleep(GetPing() + 750)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
-	;Dialog(0x80D407)
-	RndSleep(GetPing() + 250)	
+	RndSleep(GetPing() + 750)
+	Dialog(0x80CD07)
+	RndSleep(GetPing() + 750)
 EndFunc
 
 
@@ -517,24 +533,24 @@ Func TempleLoot()
 	Info('Getting Restore the Temple of War and Khobay the Betrayer quests rewards')
 	Local $npc = GetNearestNPCToCoords(1850, -200)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CF06)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80CF07)
-	RndSleep(GetPing() + 500)
+	RndSleep(GetPing() + 750)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80E006)
-	RndSleep(GetPing() + 250)	
+	RndSleep(GetPing() + 750)
 	Dialog(0x80E007)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 
 	Info('Getting the Tower of Strength quest reward')
 	Local $npc = GetNearestNPCToCoords(200, -1900)
 	GoToNPC($npc)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 	Dialog(0x80D307)
-	RndSleep(GetPing() + 250)
+	RndSleep(GetPing() + 750)
 EndFunc
 
 
@@ -558,21 +574,24 @@ EndFunc
 Func PickUpUnholyTexts()
 	Local $agent
 	Local $item
-	Local $deadlock
+	Local $attempts = 1
 	For $i = 1 To GetMaxAgents()
 		$agent = GetAgentByID($i)
 		If (DllStructGetData($agent, 'Type') <> 0x400) Then ContinueLoop
 		$item = GetItemByAgentID($i)
-		If (DllStructGetData(($item), 'ModelID') == $ID_FoW_Unholy_Texts) Then
+		If (DllStructGetData($item, 'ModelID') == $ID_FoW_Unholy_Texts) Then
 			Info('Unholy Texts: (' & Round(DllStructGetData($agent, 'X')) & ', ' & Round(DllStructGetData($agent, 'Y')) & ')')
 			PickUpItem($item)
-			$deadlock = TimerInit()
 			While Not GetIsDead() And GetAgentExists($i)
-				If TimerDiff($deadlock) > 20000 Then
+				If Mod($attempts, 20) == 0 Then
+					Local $attempt = Floor($attempts / 20)
 					Error('Could not get Unholy Texts at (' & DllStructGetData($agent, 'X') & ', ' & DllStructGetData($agent, 'Y') & ')')
-					Return False
+					Error('Attempt ' & $attempt)
+					Local $attemptPlaces[8] = [2300, 14700, 1800, 16500, 4400, 15800, 1900, 13800]
+					MoveTo($attemptPlaces[Floor($attempts / 10)] - 2, $attemptPlaces[Floor($attempts / 10) - 1])
 				EndIf
-				RndSleep(500)
+				$attempts += 1
+				RndSleep(1000)
 			WEnd
 			Return True
 		EndIf
@@ -583,16 +602,16 @@ EndFunc
 
 ; Return true if agent is a shardwolf
 Func IsShardWolf($agent)
-    Return DllStructGetData($agent, 'PlayerNumber') == $Shard_Wolf_PlayerNumber
+	Return DllStructGetData($agent, 'PlayerNumber') == $Shard_Wolf_PlayerNumber
 EndFunc
 
 
 ; Kill shardwolf if found
 Func KillShardWolf()
-    Local $agents = GetFoesInRangeOfAgent(GetMyAgent(), $RANGE_COMPASS, IsShardWolf)
-    ; Shard Wolf found
-    If $agents[0] > 0 Then
-        Local $shardWolf = $agents[1]
-        MoveAggroAndKill(DllStructGetData($shardWolf, 'X'), DllStructGetData($shardWolf, 'Y'))
-    EndIf
+	Local $agents = GetFoesInRangeOfAgent(GetMyAgent(), $RANGE_COMPASS, IsShardWolf)
+	; Shard Wolf found
+	If $agents[0] > 0 Then
+		Local $shardWolf = $agents[1]
+		MoveAggroAndKill(DllStructGetData($shardWolf, 'X'), DllStructGetData($shardWolf, 'Y'))
+	EndIf
 EndFunc

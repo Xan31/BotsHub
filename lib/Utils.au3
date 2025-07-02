@@ -863,7 +863,7 @@ Func CountTheseItems($itemArray)
 	Local $arraySize = UBound($itemArray)
 	Local $counts[$arraySize]
 	For $bagIndex = 1 To $BAG_NUMBER
-		Local $bag = GetBag($bagIndex)	
+		Local $bag = GetBag($bagIndex)
 		Local $slots = DllStructGetData($bag, 'Slots')
 		For $slot = 1 To $slots
 			Local $item = GetItemBySlot($bag, $slot)
@@ -2055,10 +2055,14 @@ EndFunc
 ;~ Clear a zone around the coordinates provided
 ;~ Credits to Shiva for auto-attack improvement
 Func MoveAggroAndKill($x, $y, $log = '', $range = $RANGE_EARSHOT * 1.5, $options = Null)
+	If Not IsGroupAlive() Then Return True
 	PushContext('MoveAggroAndKill')
-	If $options = Null Then $options = $DEFAULT_MOVEAGGROANDKILL_OPTIONS
 
-	If Not IsGroupAlive() And PopContext('MoveAggroAndKill') Then Return True
+	If $options = Null Then $options = $DEFAULT_MOVEAGGROANDKILL_OPTIONS
+	Local $flagHeroes = ($options <> Null And $options['flagHeroesOnFight'] <> Null) ? $options['flagHeroesOnFight'] : False
+	Local $openChests = ($options <> Null And $options['openChests'] <> Null) ? $options['openChests'] : True
+	Local $chestOpenRange = ($options <> Null And $options['chestOpenRange'] <> Null) ? $options['chestOpenRange'] : $RANGE_SPIRIT
+
 	If $log <> '' Then Info($log)
 	Local $me = GetMyAgent()
 	Local $coordsX = DllStructGetData($me, 'X')
@@ -2077,26 +2081,29 @@ Func MoveAggroAndKill($x, $y, $log = '', $range = $RANGE_EARSHOT * 1.5, $options
 		$oldCoordsY = $coordsY
 		$me = GetMyAgent()
 		$target = GetNearestEnemyToAgent($me)
-		If GetDistance($me, $target) < $range And DllStructGetData($target, 'ID') <> 0 Then 
-			DefaultKillFoes($options['flagHeroesOnFight'])
+		If GetDistance($me, $target) < $range And DllStructGetData($target, 'ID') <> 0 Then
+			DefaultKillFoes($flagHeroes)
+			PickUpItems(null, DefaultShouldPickItem, $range)
+			; If one member of group is dead, go to rez him before proceeding
 		EndIf
 		$coordsX = DllStructGetData($me, 'X')
 		$coordsY = DllStructGetData($me, 'Y')
 		If $oldCoordsX = $coordsX And $oldCoordsY = $coordsY Then
 			$blocked += 1
-			Move($coordsX, $coordsY, 500)
-			RndSleep(500)
-			Move($x, $y)
+			If $blocked > 6 Then
+				Move($coordsX, $coordsY, 500)
+				RndSleep(500)
+				Move($x, $y)
+			EndIf
 		EndIf
 		RndSleep(500)
-		PickUpItems(null, DefaultShouldPickItem, $range)
-		If $options['openChests'] Then
-			$chest = FindChest($options['chestOpenRange'])
+		If $openChests Then
+			$chest = FindChest($chestOpenRange)
 			If $chest <> Null Then
 				$options['openChests'] = False
 				MoveAggroAndKill(DllStructGetData($chest, 'X'), DllStructGetData($chest, 'Y'), 'Found a chest', $range, $options)
 				$options['openChests'] = True
-				FindAndOpenChests($options['chestOpenRange'])
+				FindAndOpenChests($chestOpenRange)
 			EndIf
 		EndIf
 	WEnd
@@ -2140,7 +2147,7 @@ Func DefaultKillFoes($flagHeroesOnFight = False)
 		$skillNumber = 1
 		PickUpItems(null, DefaultShouldPickItem, $RANGE_AREA)
 		$me = GetMyAgent()
-		$foesCount = CountFoesInRangeOfAgent($me, $RANGE_SPELLCAST)
+		$foesCount = CountFoesInRangeOfAgent($me, $RANGE_SPELLCAST + 200)
 	WEnd
 	If $flagHeroesOnFight Then CancelAllHeroes()
 	RndSleep(1000)
@@ -2263,16 +2270,16 @@ Func FindHeroesWithRez()
 	PushContext('FindHeroesWithRez')
 	Local $heroes[7]
 	Local $count = 0
-    For $heroNumber = 1 To GetHeroCount()
-        Local $heroID = GetHeroID($heroNumber)
-        For $skillSlot = 1 To 8
-            Local $skill = GetSkillbarSkillID($skillSlot, $heroNumber)
-            If IsRezSkill($skill) Then
+	For $heroNumber = 1 To GetHeroCount()
+		Local $heroID = GetHeroID($heroNumber)
+		For $skillSlot = 1 To 8
+			Local $skill = GetSkillbarSkillID($skillSlot, $heroNumber)
+			If IsRezSkill($skill) Then
 				$heroes[$count] = $heroNumber
 				$count += 1
-            EndIf
-        Next
-    Next
+			EndIf
+		Next
+	Next
 	Local $result[$count + 1]
 	$result[0] = 0
 	For $i = 1 To $count
@@ -2304,14 +2311,14 @@ Func IsRezSkill($skill)
 	Local $Resurrection_Chant		= 1128
 	Local $Unyielding_Aura			= 268
 	Local $Vengeance				= 315
-    Switch $skill
-        Case $By_Urals_Hammer, $Junundu_Wail, _ ;$Resurrection_Signet, $Sunspear_Rebirth_Signet _
+	Switch $skill
+		Case $By_Urals_Hammer, $Junundu_Wail, _ ;$Resurrection_Signet, $Sunspear_Rebirth_Signet _
 			$Eternal_Aura, _
 			$We_Shall_Return, $Signet_of_Return, _
 			$Death_Pact_Signet, $Flesh_of_My_Flesh, $Lively_Was_Naomei, $Restoration, _
 			$Light_of_Dwayna, $Rebirth, $Renew_Life, $Restore_Life, $Resurrect, $Resurrection_Chant, $Unyielding_Aura, $Vengeance
-            Return True
-    EndSwitch
+			Return True
+	EndSwitch
 	Return False
 EndFunc
 
@@ -2509,12 +2516,12 @@ EndFunc
 
 
 ;~ Function to print a structure in a table - pretty brutal tbh
-Func _dlldisplay($struct)
+Func _dlldisplay($struct, $fieldNames = Null)
 	Local $nextPtr, $currentPtr = DllStructGetPtr($struct, 1)
 	Local $offset = 0, $dllSize = DllStructGetSize($struct)
 	Local $elementValue, $type, $typeSize, $elementSize, $arrayCount, $aligns
 
-	Local $structArray[1][5] = [['-', $currentPtr, '<struct>', 0, '-']]	; #|Offset|Type|Size|Value'
+	Local $structArray[1][6] = [['-', '-', $currentPtr, '<struct>', 0, '-']]	; #|Offset|Type|Size|Value'
 
 	; loop through elements
 	For $i = 1 To 2 ^ 63
@@ -2572,22 +2579,22 @@ Func _dlldisplay($struct)
 		; Add/print values and alignment
 		Switch $type
 			Case 'wchar', 'char', 'byte'
-				_ArrayAdd($structArray, $i & '|' & $offset & '|' & $type & '[' & $arrayCount & ']|' & $elementSize & '|' & DllStructGetData($struct, $i))
+				_ArrayAdd($structArray, $i & '|' & ($fieldNames <> Null ? $fieldNames[$i] : '-') & '|' & $offset & '|' & $type & '[' & $arrayCount & ']|' & $elementSize & '|' & DllStructGetData($struct, $i))
 			; 'uint', 'int', 'ushort', 'short', 'double', 'float', 'ptr'
 			Case Else
 				If $arrayCount > 1 Then
-					_ArrayAdd($structArray, $i & '|' & $offset & '|' & $type & '[' & $arrayCount & ']' & '|' & $elementSize & ' (' & $typeSize & ')|' & (DllStructGetData($struct, $i) ? '[1] ' & $elementValue : '-'))
+					_ArrayAdd($structArray, $i & '|' & ($fieldNames <> Null ? $fieldNames[$i] : '-') & '|' & $offset & '|' & $type & '[' & $arrayCount & ']' & '|' & $elementSize & ' (' & $typeSize & ')|' & (DllStructGetData($struct, $i) ? '[1] ' & $elementValue : '-'))
 					; skip empty arrays
 					If DllStructGetData($struct, $i) Then
 						For $j = 2 To $arrayCount
-							_ArrayAdd($structArray, '-|' & $offset + ($typeSize * ($j - 1)) & '|-|-|[' & $j & '] ' & DllStructGetData($struct, $i, $j))
+							_ArrayAdd($structArray, '-|' & '-' & '|' & $offset + ($typeSize * ($j - 1)) & '|-|-|[' & $j & '] ' & DllStructGetData($struct, $i, $j))
 						Next
 					EndIf
 				Else
-					_ArrayAdd($structArray, $i & '|' & $offset & '|' & $type & '|' & $elementSize & '|' & $elementValue)
+					_ArrayAdd($structArray, $i & '|' & ($fieldNames <> Null ? $fieldNames[$i] : '-') & '|' & $offset & '|' & $type & '|' & $elementSize & '|' & $elementValue)
 				EndIf
 		EndSwitch
-		If $aligns Then _ArrayAdd($structArray, '-|-|<alignment>|' & ($aligns) & '|-')
+		If $aligns Then _ArrayAdd($structArray, '-|-|-|<alignment>|' & ($aligns) & '|-')
 
 		; if no next ptr then this was the last/only element
 		If Not $nextPtr Then ExitLoop
@@ -2599,9 +2606,9 @@ Func _dlldisplay($struct)
 
 	Next
 
-	_ArrayAdd($structArray, '-|' & DllStructGetPtr($struct) + DllStructGetSize($struct) & '|<endstruct>|' & DllStructGetSize($struct) & '|-')
+	_ArrayAdd($structArray, '-|-|' & DllStructGetPtr($struct) + DllStructGetSize($struct) & '|<endstruct>|' & DllStructGetSize($struct) & '|-')
 	_ArrayToClip($structArray)
-	_ArrayDisplay($structArray, '', '', 64, Default, '#|Offset|Type|Size|Value')
+	_ArrayDisplay($structArray, '', '', 64, Default, '#|Name|Offset|Type|Size|Value')
 
 	Return $structArray
 EndFunc
